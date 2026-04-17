@@ -1,0 +1,44 @@
+dengue-predictor/
+├── data/
+│ ├── raw/
+│ │ ├── dengue_cases_lahore.csv # WHO / DHIS2 export
+│ │ └── nasa_power_raw.csv # fetched via API script
+│ └── processed/
+│ └── merged_features.csv # unified ML-ready dataset
+├── notebooks/
+│ ├── 01_data_collection.ipynb
+│ ├── 02_preprocessing.ipynb
+│ ├── 03_model_training.ipynb
+│ ├── 04_evaluation.ipynb
+│ └── 05_shap_analysis.ipynb
+├── models/
+│ ├── rf_regressor.pkl
+│ ├── xgboost_regressor.pkl
+│ ├── linear_baseline.pkl
+│ ├── rf_classifier.pkl
+│ ├── kmeans_zones.pkl
+│ └── scaler.pkl
+├── backend/
+│ ├── app.py #Flask entry point
+│ ├── config.py # paths, constants
+│ ├── routes/
+│ │ ├── predict.py # POST /api/predict
+│ │ ├── clusters.py # GET /api/clusters
+│ │ └── models_meta.py # GET /api/models
+│ └── utils/
+│ ├── preprocess.py # feature engineering helpers
+│ └── nasa_fetcher.py # NASA POWER API wrapper
+├── frontend/
+│ ├── index.html # Weekly forecast page
+│ ├── map.html # Zone risk map page
+│ ├── comparison.html # Model comparison page
+│ ├── css/
+│ │ └── style.css
+│ └── js/
+│ ├── forecast.js # calls /api/predict, renders Plotly SHAP
+│ ├── map.js # Leaflet zone map
+│ └── comparison.js # model metrics chart
+├── requirements.txt
+├── Procfile # web: gunicorn backend.app:app
+├── .gitignore # exclude /models/*.pkl if >100MB
+└── README.md
