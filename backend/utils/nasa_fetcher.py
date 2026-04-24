@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 
 def fetch_weather(lat, lon, start_date, end_date):
+
     url = "https://power.larc.nasa.gov/api/temporal/daily/point"
     params = {
         "parameters": "T2M,RH2M,PRECTOTCORR,WS10M",
@@ -51,13 +52,3 @@ def fetch_weather(lat, lon, start_date, end_date):
     
     return weekly_df
 
-if __name__ == "__main__":
-    lat = 31.5204
-    lon = 74.3587
-    start_date = "20100101"
-    end_date = "20231231"
-    
-    weekly_data = fetch_weather(lat, lon, start_date, end_date)
-    
-    os.makedirs("data/raw", exist_ok=True)
-    weekly_data.to_csv("data/raw/nasa_power_raw.csv", index=False)
