@@ -11,7 +11,7 @@ def lag_features(df):
     df["t1_cases"]=df.groupby("district")["cases"].shift(1)
     df["t2_cases"]=df.groupby("district")["cases"].shift(2)
     
-    df["T2m_lag1"]=df.groupby("district")["T2M_mean"].shift(1)
+    df["T2M_lag1"]=df.groupby("district")["T2M_mean"].shift(1)
 
     df["PRECTOTCORR_lag1"]=df.groupby("district")["PRECTOTCORR_sum"].shift(1)
     df["PRECTOTCORR_lag2"]=df.groupby("district")["PRECTOTCORR_sum"].shift(2)
