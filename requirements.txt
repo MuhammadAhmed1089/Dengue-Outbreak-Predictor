@@ -9,3 +9,5 @@ requests
 gunicorn 
 flask-cors 
 imbalanced-learn
+matplotlib
+seaborn
