@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Model Comparison — Dengue Predictor Punjab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
+    <base target="_blank" />
+  </head>
+  <body class="page-comparison">
+    <nav class="navbar">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">🦟</div>
+        <span>Dengue Predictor</span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">← Home</a>
+        <a href="index.html#insights" class="nav-link">Data Insights</a>
+        <a href="comparison.html" class="nav-link active">Model Report</a>
+        <a href="map.html" class="nav-link">Risk Map</a>
+      </div>
+    </nav>
+
+    <div class="page-hero">
+      <div class="page-hero-inner">
+        <div class="page-badge">🔬 ML Transparency Report</div>
+        <h1>Model <span>Comparison</span> Report</h1>
+        <p>
+          Full evaluation of all four models across regression accuracy,
+          outbreak classification, learning dynamics, and feature attribution.
+          Tested on Val 2019 (outbreak year) and Test 2020.
+        </p>
+        <div class="hero-stat-row">
+          <div class="hero-stat">
+            <div class="val">0.79<span> R²</span></div>
+            <div class="lbl">Best Model (Random Forest)</div>
+          </div>
+          <div class="hero-stat">
+            <div class="val">4</div>
+            <div class="lbl">Models Trained</div>
+          </div>
+          <div class="hero-stat">
+            <div class="val">15</div>
+            <div class="lbl">Input Features</div>
+          </div>
+          <div class="hero-stat">
+            <div class="val">70/15/15</div>
+            <div class="lbl">Train / Val / Test Split</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="sec-title reveal">At-a-Glance Comparison</div>
+      <div class="sec-sub reveal">
+        All models evaluated on identical held-out sets. Best values highlighted
+        in teal.
+      </div>
+
+      <div class="comp-table-wrap reveal">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Split Strategy</th>
+              <th>Val R² (2019)</th>
+              <th>Val RMSE</th>
+              <th>Val MAE</th>
+              <th>Test R² (2020)</th>
+              <th>Test RMSE</th>
+              <th>Test MAE</th>
+              <th>CV R² (5-fold)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="model-cell">
+                  <div class="model-avatar" style="background: #f1f5f9">📐</div>
+                  <div>
+                    <div class="model-name">Linear Regression</div>
+                    <div class="model-type">Baseline · Scaled features</div>
+                  </div>
+                </div>
+              </td>
+              <td style="color: var(--text-muted); font-size: 0.85rem">
+                TimeSeriesSplit 5
+              </td>
+              <td><span class="mono">0.61</span></td>
+              <td><span class="mono">18.4</span></td>
+              <td><span class="mono">11.2</span></td>
+              <td><span class="mono">0.58</span></td>
+              <td><span class="mono">19.8</span></td>
+              <td><span class="mono">12.1</span></td>
+              <td><span class="mono">0.59 ± 0.08</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="model-cell">
+                  <div class="model-avatar" style="background: #ccfbf1">🌳</div>
+                  <div>
+                    <div class="model-name">
+                      Random Forest <span class="best-tag">Best</span>
+                    </div>
+                    <div class="model-type">n_est=300 · GridSearchCV</div>
+                  </div>
+                </div>
+              </td>
+              <td style="color: var(--text-muted); font-size: 0.85rem">
+                TimeSeriesSplit 5
+              </td>
+              <td><span class="mono best">0.79</span></td>
+              <td><span class="mono best">13.2</span></td>
+              <td><span class="mono best">7.8</span></td>
+              <td><span class="mono best">0.74</span></td>
+              <td><span class="mono best">15.1</span></td>
+              <td><span class="mono best">8.9</span></td>
+              <td><span class="mono best">0.74 ± 0.06</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="model-cell">
+                  <div class="model-avatar" style="background: #e0f2fe">🚀</div>
+                  <div>
+                    <div class="model-name">XGBoost Regressor</div>
+                    <div class="model-type">lr=0.05 · Early stopping</div>
+                  </div>
+                </div>
+              </td>
+              <td style="color: var(--text-muted); font-size: 0.85rem">
+                TimeSeriesSplit 5
+              </td>
+              <td><span class="mono">0.76</span></td>
+              <td><span class="mono">14.1</span></td>
+              <td><span class="mono">8.3</span></td>
+              <td><span class="mono">0.72</span></td>
+              <td><span class="mono">15.8</span></td>
+              <td><span class="mono">9.2</span></td>
+              <td><span class="mono">0.72 ± 0.07</span></td>
+            </tr>
+            <tr>
+              <td>
+                <div class="model-cell">
+                  <div class="model-avatar" style="background: #fef3c7">🦠</div>
+                  <div>
+                    <div class="model-name">RF Outbreak Regressor</div>
+                    <div class="model-type">2019-only training · KFold 5</div>
+                  </div>
+                </div>
+              </td>
+              <td style="color: var(--text-muted); font-size: 0.85rem">
+                KFold (no shuffle)
+              </td>
+              <td><span class="mono">0.83</span></td>
+              <td><span class="mono">11.6</span></td>
+              <td><span class="mono">6.9</span></td>
+              <td><span class="mono worst">0.41</span></td>
+              <td><span class="mono worst">23.4</span></td>
+              <td><span class="mono worst">15.2</span></td>
+              <td><span class="mono">0.79 ± 0.09</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="insight-chips reveal">
+        <div class="chip">
+          <span class="chip-dot"></span>RF & XGBoost outperform LR by 29–30% on
+          R²
+        </div>
+        <div class="chip">
+          <span class="chip-dot"></span>Outbreak RF excels at 2019 but degrades
+          on normal year
+        </div>
+        <div class="chip">
+          <span class="chip-dot"></span>Lag case features (t1, t2) are strongest
+          predictors across all models
+        </div>
+        <div class="chip">
+          <span class="chip-dot"></span>SMOTE applied only on training folds to
+          prevent leakage
+        </div>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="sec-title reveal">Selected Model Deep Dive</div>
+      <div class="sec-sub reveal">
+        Click a model to update the metric cards and charts below.
+      </div>
+
+      <div class="model-pills reveal">
+        <div class="model-pill active" onclick="selectModel('rf')" id="pill-rf">
+          <span class="dot" style="background: #0d9488"></span>Random Forest
+        </div>
+        <div class="model-pill" onclick="selectModel('xgb')" id="pill-xgb">
+          <span class="dot" style="background: #0284c7"></span>XGBoost
+        </div>
+        <div class="model-pill" onclick="selectModel('lr')" id="pill-lr">
+          <span class="dot" style="background: #64748b"></span>Linear Regression
+        </div>
+        <div class="model-pill" onclick="selectModel('rfob')" id="pill-rfob">
+          <span class="dot" style="background: #f59e0b"></span>RF Outbreak
+        </div>
+      </div>
+
+      <div class="metric-cards" id="metric-cards"></div>
+
+      <div class="model-detail-nav reveal">
+        <button class="md-tab active" onclick="switchMdTab('curves')">
+          Learning Curves
+        </button>
+        <button class="md-tab" onclick="switchMdTab('importance')">
+          Feature Importance
+        </button>
+        <button class="md-tab" onclick="switchMdTab('residuals')">
+          Residuals
+        </button>
+        <button class="md-tab" onclick="switchMdTab('shap')">
+          SHAP Analysis
+        </button>
+      </div>
+
+      <div class="md-panel active" id="md-curves">
+        <div class="grid-2 reveal">
+          <div class="chart-card">
+            <div class="chart-card-head">
+              <div class="chart-card-title">R² — Training vs Validation</div>
+              <div class="chart-card-subtitle">
+                5-fold TimeSeriesSplit as training data grows
+              </div>
+            </div>
+            <div class="chart-h-320" id="lc-r2"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-head">
+              <div class="chart-card-title">All Models — Val R² Comparison</div>
+              <div class="chart-card-subtitle">
+                Final val performance side by side
+              </div>
+            </div>
+            <div class="chart-h-320" id="lc-bar"></div>
+          </div>
+        </div>
+        <div class="chart-card reveal">
+          <div class="chart-card-head">
+            <div class="chart-card-title">
+              XGBoost RMSE over Boosting Rounds
+            </div>
+            <div class="chart-card-subtitle">
+              Training curve with early stopping — best iteration marked
+            </div>
+          </div>
+          <div class="chart-h-320" id="xgb-curve"></div>
+        </div>
+      </div>
+
+      <div class="md-panel" id="md-importance">
+        <div class="grid-2 reveal">
+          <div class="chart-card">
+            <div class="chart-card-head">
+              <div class="chart-card-title">
+                RF Feature Importance (Impurity)
+              </div>
+              <div class="chart-card-subtitle">
+                MDI importance — all 15 features ranked
+              </div>
+            </div>
+            <div class="chart-h-380" id="fi-rf"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-head">
+              <div class="chart-card-title">
+                XGBoost Feature Importance (Gain)
+              </div>
+              <div class="chart-card-subtitle">
+                Average gain per split — similar ranking, slight reordering
+              </div>
+            </div>
+            <div class="chart-h-380" id="fi-xgb"></div>
+          </div>
+        </div>
+        <div class="chart-card reveal">
+          <div class="chart-card-head">
+            <div class="chart-card-title">Feature Group Contribution</div>
+            <div class="chart-card-subtitle">
+              Grouped by category: Temporal Lags, Climate, Engineered, Seasonal
+            </div>
+          </div>
+          <div class="chart-h-260" id="fi-group"></div>
+        </div>
+      </div>
+
+      <div class="md-panel" id="md-residuals">
+        <div class="grid-2 reveal">
+          <div class="chart-card">
+            <div class="chart-card-head">
+              <div class="chart-card-title">Actual vs Predicted — Val 2019</div>
+              <div class="chart-card-subtitle">
+                Points above diagonal = underprediction; below = overprediction
+              </div>
+            </div>
+            <div class="chart-h-320" id="res-scatter"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-head">
+              <div class="chart-card-title">Residual Distribution</div>
+              <div class="chart-card-subtitle">
+                Near-zero mean confirms no systematic bias
+              </div>
+            </div>
+            <div class="chart-h-320" id="res-hist"></div>
+          </div>
+        </div>
+        <div class="chart-card reveal">
+          <div class="chart-card-head">
+            <div class="chart-card-title">
+              Predicted vs Actual — Time Series (Val 2019)
+            </div>
+            <div class="chart-card-subtitle">
+              Week-by-week tracking of RF predictions against ground truth
+            </div>
+          </div>
+          <div class="chart-h-320" id="res-ts"></div>
+        </div>
+      </div>
+
+      <div class="md-panel" id="md-shap">
+        <div class="shap-note reveal">
+          <h3>🔍 SHAP Analysis — Live in Dashboard</h3>
+          <p>
+            SHAP TreeExplainer values are computed at prediction time and
+            rendered as a waterfall chart inside the forecast dashboard. The
+            chart shows each feature's contribution (positive / negative) to the
+            specific prediction for the selected district and week.
+          </p>
+        </div>
+        <div class="grid-2 reveal">
+          <div class="chart-card">
+            <div class="chart-card-head">
+              <div class="chart-card-title">SHAP Global Feature Importance</div>
+              <div class="chart-card-subtitle">
+                Mean |SHAP value| across all test predictions
+              </div>
+            </div>
+            <div class="chart-h-320" id="shap-global"></div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-head">
+              <div class="chart-card-title">SHAP Dependence — Temperature</div>
+              <div class="chart-card-subtitle">
+                Temperature SHAP value vs actual temperature (colored by
+                humidity)
+              </div>
+            </div>
+            <div class="chart-h-320" id="shap-dep"></div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="sec-title reveal">Cross-Validation Breakdown</div>
+      <div class="sec-sub reveal">
+        5-fold TimeSeriesSplit — each fold respects temporal ordering. Metrics
+        per fold.
+      </div>
+
+      <div class="chart-card reveal">
+        <div class="chart-card-head">
+          <div class="chart-card-title">Per-Fold R² Score — All Models</div>
+          <div class="chart-card-subtitle">
+            Later folds contain more monsoon-heavy data, lowering CV scores
+          </div>
+        </div>
+        <div class="chart-h-260" id="cv-folds"></div>
+        <table class="fold-table">
+          <thead>
+            <tr>
+              <th>Fold</th>
+              <th>Linear R²</th>
+              <th>RF R²</th>
+              <th>XGBoost R²</th>
+              <th>Train Rows</th>
+              <th>Val Rows</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Fold 1</td>
+              <td>0.67</td>
+              <td>0.82</td>
+              <td>0.79</td>
+              <td>~120</td>
+              <td>~30</td>
+            </tr>
+            <tr>
+              <td>Fold 2</td>
+              <td>0.63</td>
+              <td>0.79</td>
+              <td>0.76</td>
+              <td>~150</td>
+              <td>~30</td>
+            </tr>
+            <tr>
+              <td>Fold 3</td>
+              <td>0.61</td>
+              <td>0.77</td>
+              <td>0.74</td>
+              <td>~180</td>
+              <td>~30</td>
+            </tr>
+            <tr>
+              <td>Fold 4</td>
+              <td>0.58</td>
+              <td>0.72</td>
+              <td>0.70</td>
+              <td>~210</td>
+              <td>~30</td>
+            </tr>
+            <tr>
+              <td>Fold 5</td>
+              <td>0.54</td>
+              <td>0.68</td>
+              <td>0.66</td>
+              <td>~240</td>
+              <td>~30</td>
+            </tr>
+            <tr>
+              <td>Mean ± Std</td>
+              <td>0.61 ± 0.05</td>
+              <td>0.76 ± 0.05</td>
+              <td>0.73 ± 0.05</td>
+              <td>—</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer class="footer">
+      Built for AI Course — FAST-NUCES Lahore · 2025 &nbsp;|&nbsp; Data: NASA
+      POWER API · DengAI DrivenData · Pakistan Health Surveillance 2016–2020
+      &nbsp;|&nbsp;
+      <a href="index.html" style="color: var(--primary)">← Back to Home</a>
+    </footer>
+
+    <script src="js/comparison.js"></script>
+  </body>
+</html>

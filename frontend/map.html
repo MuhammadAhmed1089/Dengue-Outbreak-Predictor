@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>District Risk Map — Dengue Predictor Punjab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="css/style.css" />
+    <base target="_blank" />
+  </head>
+  <body class="page-map">
+    <nav class="navbar">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">🦟</div>
+        <span>Dengue Predictor</span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">← Home</a>
+        <a href="index.html#insights" class="nav-link">Data Insights</a>
+        <a href="comparison.html" class="nav-link">Model Report</a>
+        <a href="map.html" class="nav-link active">Risk Map</a>
+      </div>
+    </nav>
+
+    <div class="map-hero">
+      <div class="page-hero-inner">
+        <div class="page-badge">🗺️ Live Surveillance Map</div>
+        <h1>District <span>Risk Map</span></h1>
+        <p>
+          Interactive Punjab map showing predicted dengue risk tiers across all
+          36 districts. Click any district marker for case forecasts and
+          historical trends.
+        </p>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="sec-title reveal">Punjab District Risk Overview</div>
+      <div class="sec-sub reveal">
+        Circle size reflects predicted case load. Color reflects KMeans risk
+        tier.
+      </div>
+
+      <div class="reveal" style="margin-bottom: 24px">
+        <div id="map-container"></div>
+      </div>
+
+      <div class="map-legend reveal">
+        <div class="legend-item">
+          <span class="legend-dot" style="background: #dc2626"></span>
+          Critical Risk (>200 cases)
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background: #ea580c"></span>
+          High Risk (100–200 cases)
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background: #f59e0b"></span>
+          Moderate Risk (50–100 cases)
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background: #10b981"></span>
+          Low Risk (&lt;50 cases)
+        </div>
+      </div>
+
+      <hr class="divider" />
+
+      <div class="sec-title reveal">Risk Tier Summary</div>
+      <div class="sec-sub reveal">
+        Districts classified by KMeans clustering on predicted cases, population
+        density, and climate severity.
+      </div>
+
+      <div class="comp-table-wrap reveal">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>Tier</th>
+              <th>Districts</th>
+              <th>Avg Predicted Cases</th>
+              <th>Key Drivers</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <span class="model-badge"
+                  ><span class="model-dot" style="background: #dc2626"></span
+                  >Critical</span
+                >
+              </td>
+              <td>Lahore, Rawalpindi, Faisalabad</td>
+              <td><span class="mono">245</span></td>
+              <td>
+                High temp + humidity, dense population, prior outbreak history
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <span class="model-badge"
+                  ><span class="model-dot" style="background: #ea580c"></span
+                  >High</span
+                >
+              </td>
+              <td>Multan, Gujranwala, Sialkot, Sheikhupura</td>
+              <td><span class="mono">138</span></td>
+              <td>Monsoon rainfall peaks, moderate urban density</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="model-badge"
+                  ><span class="model-dot" style="background: #f59e0b"></span
+                  >Moderate</span
+                >
+              </td>
+              <td>Bahawalpur, Sargodha, Jhang, Sahiwal</td>
+              <td><span class="mono">72</span></td>
+              <td>Seasonal spikes, lower population density</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="model-badge"
+                  ><span class="model-dot" style="background: #10b981"></span
+                  >Low</span
+                >
+              </td>
+              <td>Dera Ghazi Khan, Muzaffargarh, Rajanpur</td>
+              <td><span class="mono">28</span></td>
+              <td>Arid climate, sparse population, limited breeding sites</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer class="footer">
+      Built for AI Course — FAST-NUCES Lahore · 2025 &nbsp;|&nbsp; Data: NASA
+      POWER API · DengAI DrivenData · Pakistan Health Surveillance 2016–2020
+      &nbsp;|&nbsp;
+      <a href="index.html" style="color: var(--primary)">← Back to Home</a>
+    </footer>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="js/map.js"></script>
+  </body>
+</html>

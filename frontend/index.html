@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dengue Predictor Punjab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+    <base target="_blank" />
+  </head>
+  <body class="page-home">
+    <div id="loading-screen">
+      <div class="loader-container">
+        <div class="loader-logo">
+          <div class="loader-glow"></div>
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <ellipse class="mosquito-body" cx="50" cy="50" rx="6" ry="14" />
+            <circle class="mosquito-path" cx="50" cy="30" r="5" />
+            <line class="mosquito-path" x1="50" y1="25" x2="50" y2="15" />
+            <line class="mosquito-path" x1="46" y1="27" x2="40" y2="20" />
+            <line class="mosquito-path" x1="54" y1="27" x2="60" y2="20" />
+            <path
+              class="mosquito-wing-left"
+              d="M44,42 Q20,30 15,45 Q20,55 44,48"
+            />
+            <path
+              class="mosquito-wing-right"
+              d="M56,42 Q80,30 85,45 Q80,55 56,48"
+            />
+            <line class="mosquito-path" x1="45" y1="45" x2="30" y2="40" />
+            <line class="mosquito-path" x1="44" y1="52" x2="28" y2="52" />
+            <line class="mosquito-path" x1="45" y1="58" x2="32" y2="65" />
+            <line class="mosquito-path" x1="55" y1="45" x2="70" y2="40" />
+            <line class="mosquito-path" x1="56" y1="52" x2="72" y2="52" />
+            <line class="mosquito-path" x1="55" y1="58" x2="68" y2="65" />
+          </svg>
+        </div>
+        <div class="loader-title">Dengue Predictor Punjab</div>
+        <div class="loader-subtitle">Initializing surveillance dashboard</div>
+        <div class="loader-bar-container"><div class="loader-bar"></div></div>
+        <div class="loader-status" id="loaderStatus">
+          Loading models<span class="dot">.</span><span class="dot">.</span
+          ><span class="dot">.</span>
+        </div>
+      </div>
+      <div class="loader-version">v1.0 · FAST-NUCES Lahore · 2025</div>
+    </div>
+
+    <div id="main-content" style="opacity: 0; transition: opacity 0.6s ease">
+      <nav class="navbar" id="navbar">
+        <a href="index.html" class="brand">
+          <div class="brand-icon">🦟</div>
+          <span>Dengue Predictor</span>
+        </a>
+        <div class="nav-links">
+          <a href="#how" class="nav-link">How It Works</a>
+          <a href="#insights" class="nav-link">Data Insights</a>
+          <a href="comparison.html" class="nav-link">Models</a>
+          <a href="#dashboard" class="nav-link primary">Launch Dashboard →</a>
+        </div>
+      </nav>
+
+      <section class="hero" id="hero">
+        <div class="float-shape float-1"></div>
+        <div class="float-shape float-2"></div>
+        <div class="float-shape float-3"></div>
+        <div class="hero-inner">
+          <div>
+            <div class="hero-badge">
+              <span class="pulse-dot"></span>Punjab Health Surveillance
+              2016–2020
+            </div>
+            <h1>
+              Predicting Dengue<br />Outbreaks Across<br /><span
+                class="gradient-text"
+                >Punjab, Pakistan</span
+              >
+            </h1>
+            <p>
+              Machine learning-powered early warning system for district health
+              officers. Enter climate data, get a 7-day case forecast with
+              explainable AI insights.
+            </p>
+            <div class="hero-buttons">
+              <a href="#dashboard" class="btn btn-main">🚀 Launch Dashboard</a>
+              <a href="#how" class="btn btn-ghost">📖 Learn More</a>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <path
+                class="punjab-fill"
+                d="M60,40 L100,30 L140,35 L160,60 L170,100 L155,140 L120,165 L80,160 L50,140 L35,100 L40,70 Z"
+              />
+              <path
+                class="punjab-path"
+                d="M60,40 L100,30 L140,35 L160,60 L170,100 L155,140 L120,165 L80,160 L50,140 L35,100 L40,70 Z"
+              />
+              <circle
+                class="district-dot"
+                cx="100"
+                cy="55"
+                r="3"
+                style="animation-delay: 2.6s"
+              />
+              <circle
+                class="district-dot"
+                cx="130"
+                cy="70"
+                r="3"
+                style="animation-delay: 2.7s"
+              />
+              <circle
+                class="district-dot"
+                cx="85"
+                cy="85"
+                r="3"
+                style="animation-delay: 2.8s"
+              />
+              <circle
+                class="district-dot"
+                cx="115"
+                cy="100"
+                r="3"
+                style="animation-delay: 2.9s"
+              />
+              <circle
+                class="district-dot"
+                cx="70"
+                cy="110"
+                r="3"
+                style="animation-delay: 3s"
+              />
+              <circle
+                class="district-dot"
+                cx="140"
+                cy="115"
+                r="3"
+                style="animation-delay: 3.1s"
+              />
+              <circle
+                class="district-dot"
+                cx="95"
+                cy="130"
+                r="3"
+                style="animation-delay: 3.2s"
+              />
+              <circle
+                class="district-dot"
+                cx="125"
+                cy="140"
+                r="3"
+                style="animation-delay: 3.3s"
+              />
+            </svg>
+          </div>
+        </div>
+        <div class="scroll-indicator">
+          <span>Scroll to explore</span>
+          <svg
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M19 14l-7 7m0 0l-7-7m7 7V3"
+            />
+          </svg>
+        </div>
+      </section>
+
+      <section class="section stats-section" id="stats">
+        <div class="section-header reveal">
+          <h2>The Challenge</h2>
+          <p>
+            Dengue cases in Punjab spike by 300% during monsoon season. Health
+            officers need reliable 7-day advance warnings to mobilize resources
+            and save lives.
+          </p>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card reveal reveal-delay-1">
+            <div class="stat-icon">🏛️</div>
+            <div class="stat-number" data-count="36">0</div>
+            <div class="stat-label">Punjab Districts Monitored</div>
+          </div>
+          <div class="stat-card reveal reveal-delay-2">
+            <div class="stat-icon">📊</div>
+            <div class="stat-number" data-count="5">0</div>
+            <div class="stat-label">Years of Surveillance Data</div>
+          </div>
+          <div class="stat-card reveal reveal-delay-3">
+            <div class="stat-icon">🤖</div>
+            <div class="stat-number" data-count="4">0</div>
+            <div class="stat-label">ML Models Ensembled</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="how">
+        <div class="section-header reveal">
+          <h2>How It Works</h2>
+          <p>
+            Three simple steps from climate data to actionable intelligence.
+          </p>
+        </div>
+        <div class="steps-grid">
+          <div class="step-card reveal reveal-delay-1">
+            <div class="step-number">1</div>
+            <div class="step-icon">🌡️</div>
+            <h3>Enter Climate Data</h3>
+            <p>
+              Input current temperature, humidity, rainfall, and wind speed for
+              your district. Data sourced from NASA POWER API.
+            </p>
+          </div>
+          <div class="step-card reveal reveal-delay-2">
+            <div class="step-number">2</div>
+            <div class="step-icon">🧠</div>
+            <h3>AI Predicts Cases</h3>
+            <p>
+              Random Forest and XGBoost ensemble forecasts next week's dengue
+              case count with confidence intervals.
+            </p>
+          </div>
+          <div class="step-card reveal reveal-delay-3">
+            <div class="step-number">3</div>
+            <div class="step-icon">🔍</div>
+            <h3>See Why & Act</h3>
+            <p>
+              SHAP explainability reveals which factors drove the prediction —
+              so you know exactly where to focus.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section tech-section" id="tech">
+        <div class="section-header reveal">
+          <h2>Built With</h2>
+          <p>
+            Modern, open-source stack chosen for reliability, transparency, and
+            performance.
+          </p>
+        </div>
+        <div class="tech-grid">
+          <div class="tech-item reveal reveal-delay-1">
+            <div class="tech-icon">🐍</div>
+            <div class="tech-name">Python</div>
+            <div class="tech-role">Backend & ML</div>
+          </div>
+          <div class="tech-item reveal reveal-delay-1">
+            <div class="tech-icon">⚡</div>
+            <div class="tech-name">Flask</div>
+            <div class="tech-role">REST API</div>
+          </div>
+          <div class="tech-item reveal reveal-delay-2">
+            <div class="tech-icon">🌳</div>
+            <div class="tech-name">Random Forest</div>
+            <div class="tech-role">Regression</div>
+          </div>
+          <div class="tech-item reveal reveal-delay-2">
+            <div class="tech-icon">🚀</div>
+            <div class="tech-name">XGBoost</div>
+            <div class="tech-role">Regression</div>
+          </div>
+          <div class="tech-item reveal reveal-delay-3">
+            <div class="tech-icon">🗺️</div>
+            <div class="tech-name">Leaflet.js</div>
+            <div class="tech-role">Interactive Map</div>
+          </div>
+          <div class="tech-item reveal reveal-delay-3">
+            <div class="tech-icon">📈</div>
+            <div class="tech-name">Plotly.js</div>
+            <div class="tech-role">Data Viz</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="insights-section" id="insights">
+        <div class="insights-inner">
+          <div class="section-header reveal">
+            <h2>Data Insights</h2>
+            <p>
+              Exploratory analysis and model performance metrics extracted
+              directly from our training notebooks.
+            </p>
+          </div>
+
+          <div class="insights-tabs reveal">
+            <button class="ins-tab active" onclick="switchTab('eda')">
+              📊 EDA Charts
+            </button>
+            <button class="ins-tab" onclick="switchTab('model')">
+              🤖 Model Performance
+            </button>
+          </div>
+
+          <div class="tab-panel active" id="tab-eda">
+            <div class="charts-grid-2 reveal reveal-delay-1">
+              <div class="chart-card">
+                <div class="chart-card-title">Temperature vs Cases</div>
+                <div class="chart-card-subtitle">
+                  Dengue incidence peaks at 28–36 °C optimal mosquito breeding
+                  range
+                </div>
+                <div class="chart-container" id="chart-temp"></div>
+              </div>
+              <div class="chart-card">
+                <div class="chart-card-title">Humidity vs Cases</div>
+                <div class="chart-card-subtitle">
+                  High relative humidity accelerates Aedes aegypti egg
+                  development
+                </div>
+                <div class="chart-container" id="chart-humidity"></div>
+              </div>
+            </div>
+            <div class="charts-grid-2 reveal reveal-delay-2">
+              <div class="chart-card">
+                <div class="chart-card-title">Precipitation Distribution</div>
+                <div class="chart-card-subtitle">
+                  Weekly rainfall in mm — right-skewed, dominated by monsoon
+                  spikes
+                </div>
+                <div class="chart-container" id="chart-precip"></div>
+              </div>
+              <div class="chart-card">
+                <div class="chart-card-title">
+                  Cases by Epidemiological Week
+                </div>
+                <div class="chart-card-subtitle">
+                  Clear monsoon seasonality: weeks 32–44 drive 70% of annual
+                  burden
+                </div>
+                <div class="chart-container" id="chart-epiweek"></div>
+              </div>
+            </div>
+            <div class="charts-grid-1 reveal reveal-delay-3">
+              <div class="chart-card">
+                <div class="chart-card-title">
+                  Feature Correlation with Cases (Target)
+                </div>
+                <div class="chart-card-subtitle">
+                  Top 10 features ranked by |Pearson r| — lag case features
+                  dominate, then climate variables
+                </div>
+                <div class="chart-container-lg" id="chart-corr"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="tab-model">
+            <div
+              class="chart-card reveal reveal-delay-1"
+              style="margin-bottom: 24px"
+            >
+              <div class="chart-card-title">Model Comparison — Key Metrics</div>
+              <div class="chart-card-subtitle">
+                Evaluated on Val 2019 (outbreak year) and Test 2020 (normal
+                year). Lower RMSE & MAE = better.
+              </div>
+              <div class="metrics-table-wrap" style="margin-top: 20px">
+                <table class="metrics-table">
+                  <thead>
+                    <tr>
+                      <th>Model</th>
+                      <th>Val R² (2019)</th>
+                      <th>Val RMSE</th>
+                      <th>Val MAE</th>
+                      <th>Test R² (2020)</th>
+                      <th>Test RMSE</th>
+                      <th>Test MAE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <span class="model-badge"
+                          ><span
+                            class="model-dot"
+                            style="background: #94a3b8"
+                          ></span
+                          >Linear Regression</span
+                        >
+                      </td>
+                      <td><span class="metric-val">0.61</span></td>
+                      <td><span class="metric-val">18.4</span></td>
+                      <td><span class="metric-val">11.2</span></td>
+                      <td><span class="metric-val">0.58</span></td>
+                      <td><span class="metric-val">19.8</span></td>
+                      <td><span class="metric-val">12.1</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="model-badge"
+                          ><span
+                            class="model-dot"
+                            style="background: #0d9488"
+                          ></span
+                          >Random Forest
+                          <span class="badge-best">Best</span></span
+                        >
+                      </td>
+                      <td><span class="metric-val best">0.79</span></td>
+                      <td><span class="metric-val best">13.2</span></td>
+                      <td><span class="metric-val best">7.8</span></td>
+                      <td><span class="metric-val best">0.74</span></td>
+                      <td><span class="metric-val best">15.1</span></td>
+                      <td><span class="metric-val best">8.9</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="model-badge"
+                          ><span
+                            class="model-dot"
+                            style="background: #0284c7"
+                          ></span
+                          >XGBoost</span
+                        >
+                      </td>
+                      <td><span class="metric-val">0.76</span></td>
+                      <td><span class="metric-val">14.1</span></td>
+                      <td><span class="metric-val">8.3</span></td>
+                      <td><span class="metric-val">0.72</span></td>
+                      <td><span class="metric-val">15.8</span></td>
+                      <td><span class="metric-val">9.2</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="charts-grid-2 reveal reveal-delay-2">
+              <div class="chart-card">
+                <div class="chart-card-title">Learning Curves — R² Score</div>
+                <div class="chart-card-subtitle">
+                  Train vs validation R² as training size grows (5-fold
+                  TimeSeriesSplit)
+                </div>
+                <div class="chart-container" id="chart-learning"></div>
+              </div>
+              <div class="chart-card">
+                <div class="chart-card-title">RF Feature Importance</div>
+                <div class="chart-card-subtitle">
+                  Impurity-based importance from Random Forest — lag case count
+                  is #1 driver
+                </div>
+                <div class="chart-container" id="chart-importance"></div>
+              </div>
+            </div>
+
+            <div class="charts-grid-1 reveal reveal-delay-3">
+              <div class="chart-card">
+                <div class="chart-card-title">
+                  XGBoost Training Curve — RMSE over Boosting Rounds
+                </div>
+                <div class="chart-card-subtitle">
+                  Early stopping at optimal iteration prevents overfitting on
+                  val set
+                </div>
+                <div class="chart-container-lg" id="chart-xgb"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="insights-link-row reveal" style="margin-top: 40px">
+            <a href="comparison.html" class="insights-link-card">
+              <h3>🔬 Full Model Report</h3>
+              <p>
+                Detailed confusion matrices, residual plots, SHAP waterfall
+                charts, and cross-validation breakdowns for all 4 models.
+              </p>
+              <span class="link-arrow">Open comparison.html →</span>
+            </a>
+            <a href="map.html" class="insights-link-card secondary">
+              <h3>🗺️ District Risk Map</h3>
+              <p>
+                Interactive Punjab map with all 36 districts color-coded by
+                KMeans risk tier. Click any district for historical trends.
+              </p>
+              <span class="link-arrow">Open map.html →</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="section-header reveal">
+          <h2>Three Powerful Tools</h2>
+          <p>
+            Everything a district health officer needs to stay ahead of
+            outbreaks.
+          </p>
+        </div>
+        <div class="features-grid">
+          <div class="feature-card reveal reveal-delay-1">
+            <div class="feature-preview">📅</div>
+            <div class="feature-content">
+              <h3>Weekly Forecast</h3>
+              <p>
+                Enter climate readings and get a 7-day case prediction with
+                severity classification and SHAP explainability.
+              </p>
+              <span class="feature-tag">Primary Tool</span>
+            </div>
+          </div>
+          <div class="feature-card reveal reveal-delay-2">
+            <div class="feature-preview">🗺️</div>
+            <div class="feature-content">
+              <h3>Zone Risk Map</h3>
+              <p>
+                Interactive Punjab map showing all 36 districts color-coded by
+                KMeans risk tier. Click any district for details.
+              </p>
+              <span class="feature-tag">At-a-Glance</span>
+            </div>
+          </div>
+          <div class="feature-card reveal reveal-delay-3">
+            <div class="feature-preview">📊</div>
+            <div class="feature-content">
+              <h3>Model Comparison</h3>
+              <p>
+                Full transparency — see how Linear Regression, Random Forest,
+                and XGBoost performed on the test set.
+              </p>
+              <span class="feature-tag">Transparency</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="cta-section reveal" id="cta">
+        <h2>Ready to protect your district?</h2>
+        <p>
+          Start using the Dengue Predictor dashboard today. No installation
+          required.
+        </p>
+        <a href="#dashboard" class="btn btn-main">Enter Dashboard →</a>
+      </section>
+
+      <section class="dashboard-section" id="dashboard">
+        <div class="dashboard-inner">
+          <div class="dashboard-header reveal">
+            <h2>Weekly Outbreak Forecast</h2>
+            <p>
+              Enter this week's climate data to predict next week's dengue case
+              count.
+            </p>
+          </div>
+          <div class="forecast-grid">
+            <div class="dash-card reveal reveal-delay-1">
+              <div class="dash-card-title">Input Parameters</div>
+              <div class="form-group">
+                <label class="form-label">District</label>
+                <div class="select-wrapper">
+                  <select class="form-input">
+                    <option>Lahore</option>
+                    <option>Faisalabad</option>
+                    <option>Rawalpindi</option>
+                    <option>Multan</option>
+                    <option>Gujranwala</option>
+                    <option>Sialkot</option>
+                    <option>Bahawalpur</option>
+                    <option>Sargodha</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Temperature (°C)</label>
+                <input
+                  type="number"
+                  class="form-input"
+                  placeholder="e.g. 32.4"
+                  value="33.2"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Humidity (%)</label>
+                <input
+                  type="number"
+                  class="form-input"
+                  placeholder="e.g. 65"
+                  value="72"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Rainfall (mm)</label>
+                <input
+                  type="number"
+                  class="form-input"
+                  placeholder="e.g. 12.5"
+                  value="8.3"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Wind Speed (m/s)</label>
+                <input
+                  type="number"
+                  class="form-input"
+                  placeholder="e.g. 3.2"
+                  value="2.8"
+                />
+              </div>
+              <button class="btn-predict" onclick="simulatePrediction()">
+                🔮 Predict Outbreak
+              </button>
+            </div>
+
+            <div class="dash-card reveal reveal-delay-2">
+              <div class="dash-card-title">Prediction Result</div>
+              <div id="resultArea" class="result-area">
+                <div class="case-number" id="caseCount">247</div>
+                <div class="case-sublabel">predicted cases next week</div>
+                <div class="severity-badge sev-high" id="severityBadge">
+                  <span
+                    style="
+                      width: 8px;
+                      height: 8px;
+                      border-radius: 50%;
+                      background: currentColor;
+                      display: inline-block;
+                    "
+                  ></span>
+                  HIGH RISK
+                </div>
+                <div class="meta-row">
+                  District: <strong>Lahore</strong> &nbsp;|&nbsp; Week:
+                  <strong>32</strong> &nbsp;|&nbsp; Model:
+                  <strong>Random Forest</strong> &nbsp;|&nbsp; Confidence:
+                  <strong>±42</strong>
+                </div>
+                <div
+                  style="
+                    font-size: 0.875rem;
+                    font-weight: 600;
+                    color: var(--text-secondary);
+                    margin-bottom: 12px;
+                  "
+                >
+                  What drove this prediction?
+                </div>
+                <div class="shap-placeholder">
+                  SHAP Feature Contribution Chart (Plotly.js)
+                </div>
+              </div>
+              <div
+                id="emptyState"
+                style="
+                  text-align: center;
+                  padding: 60px 20px;
+                  color: var(--text-muted);
+                "
+              >
+                <div style="font-size: 3rem; margin-bottom: 16px">🔮</div>
+                <div
+                  style="
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: var(--text-secondary);
+                    margin-bottom: 8px;
+                  "
+                >
+                  No prediction yet
+                </div>
+                <div style="font-size: 0.875rem">
+                  Fill the form and click Predict to see results
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        Built for AI Course — FAST-NUCES Lahore · 2025 &nbsp;|&nbsp; Data: NASA
+        POWER API · DengAI DrivenData · Pakistan Health Surveillance 2016–2020
+      </footer>
+    </div>
+
+    <div class="demo-controls">
+      <button class="demo-btn" onclick="replayLoading()">
+        ↻ Replay Loading
+      </button>
+      <button class="demo-btn" onclick="simulatePrediction()">
+        ▶ Simulate Prediction
+      </button>
+      <button class="demo-btn" onclick="toggleSeverity()">
+        🔴 Toggle Critical
+      </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
+    <script src="js/forecast.js"></script>
+  </body>
+</html>
