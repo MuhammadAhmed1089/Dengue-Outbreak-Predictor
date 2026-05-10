@@ -327,6 +327,7 @@ window.toggleSeverity = function () {
 // Falls back to demo data if backend unavailable
 // ═══════════════════════════════════════════════════════════
 let chartsRendered = false;
+let pairPlotRendered = false;
 
 function renderAllCharts() {
   if (chartsRendered) return;
@@ -344,6 +345,44 @@ async function renderEdaCharts() {
   } catch (_) {}
 
   edaData ? renderEdaFromApi(edaData) : renderEdaDemo();
+
+  // Also load the pair plot image (independent of EDA data)
+  renderPairPlot();
+}
+
+// ── PAIR PLOT ─────────────────────────────────────────────
+async function renderPairPlot() {
+  if (pairPlotRendered) return;
+  pairPlotRendered = true;
+
+  const loading = document.getElementById("pair-plot-loading");
+  const img     = document.getElementById("pair-plot-img");
+  const errBox  = document.getElementById("pair-plot-error");
+
+  // Show loading spinner
+  loading.style.display = "flex";
+  img.style.display     = "none";
+  errBox.style.display  = "none";
+
+  try {
+    const res = await fetch(`${API_BASE}/api/insights/pair_plot`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    // data.image_base64 is a PNG encoded as base64
+    img.src = `data:${data.mime};base64,${data.image_base64}`;
+    img.onload = () => {
+      loading.style.display = "none";
+      img.style.display     = "block";
+    };
+    img.onerror = () => {
+      loading.style.display = "none";
+      errBox.style.display  = "flex";
+    };
+  } catch (_) {
+    loading.style.display = "none";
+    errBox.style.display  = "flex";
+  }
 }
 
 function renderEdaFromApi(d) {
@@ -482,6 +521,8 @@ function renderEdaFromApi(d) {
     plotConfig,
   );
 
+  const corrLMargin = window.innerWidth < 600 ? 110 : 160;
+  const corrRMargin = window.innerWidth < 600 ? 44 : 60;
   Plotly.newPlot(
     "chart-corr",
     [
@@ -502,7 +543,7 @@ function renderEdaFromApi(d) {
     ],
     {
       ...baseLayout,
-      margin: { t: 10, r: 60, b: 40, l: 160 },
+      margin: { t: 10, r: corrRMargin, b: 40, l: corrLMargin },
       xaxis: {
         ...baseLayout.xaxis,
         title: "Pearson r with Cases",
@@ -510,7 +551,12 @@ function renderEdaFromApi(d) {
         zeroline: true,
         zerolinecolor: "#E2E8F0",
       },
-      yaxis: { ...baseLayout.yaxis, autorange: "reversed" },
+      yaxis: {
+        ...baseLayout.yaxis,
+        autorange: "reversed",
+        automargin: true,
+        tickfont: { color: "#94A3B8", size: window.innerWidth < 600 ? 9 : 11 },
+      },
     },
     plotConfig,
   );
@@ -688,6 +734,8 @@ function renderEdaDemo() {
     "WS10M_mean",
   ];
   const corrs = [0.82, 0.71, 0.58, 0.52, 0.48, 0.45, 0.38, 0.35, 0.31, -0.12];
+  const demoLMargin = window.innerWidth < 600 ? 110 : 160;
+  const demoRMargin = window.innerWidth < 600 ? 44 : 60;
   Plotly.newPlot(
     "chart-corr",
     [
@@ -708,7 +756,7 @@ function renderEdaDemo() {
     ],
     {
       ...baseLayout,
-      margin: { t: 10, r: 60, b: 40, l: 160 },
+      margin: { t: 10, r: demoRMargin, b: 40, l: demoLMargin },
       xaxis: {
         ...baseLayout.xaxis,
         title: "Pearson r with Cases",
@@ -716,7 +764,12 @@ function renderEdaDemo() {
         zeroline: true,
         zerolinecolor: "#E2E8F0",
       },
-      yaxis: { ...baseLayout.yaxis, autorange: "reversed" },
+      yaxis: {
+        ...baseLayout.yaxis,
+        autorange: "reversed",
+        automargin: true,
+        tickfont: { color: "#94A3B8", size: window.innerWidth < 600 ? 9 : 11 },
+      },
     },
     plotConfig,
   );

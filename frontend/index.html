@@ -59,6 +59,7 @@
         <div class="nav-links">
           <a href="#how" class="nav-link">How It Works</a>
           <a href="#insights" class="nav-link">Data Insights</a>
+          <a href="eda_plots.html" class="nav-link">Pair Plots</a>
           <a href="comparison.html" class="nav-link">Models</a>
           <a href="#dashboard" class="nav-link primary">Launch Dashboard →</a>
         </div>
@@ -351,9 +352,10 @@
                   Top 10 features ranked by |Pearson r| — lag case features
                   dominate, then climate variables
                 </div>
-                <div class="chart-container-lg" id="chart-corr"></div>
+                <div class="chart-container-corr" id="chart-corr"></div>
               </div>
             </div>
+
           </div>
 
           <div class="tab-panel" id="tab-model">
@@ -486,6 +488,15 @@
                 KMeans risk tier. Click any district for historical trends.
               </p>
               <span class="link-arrow">Open map.html →</span>
+            </a>
+            <a href="eda_plots.html" class="insights-link-card" style="background: linear-gradient(135deg, #7C3AED, #5B21B6)">
+              <h3>📊 Pair Plots &amp; Correlation</h3>
+              <p>
+                Six deep-dive scatter matrices — lag features, weather drivers,
+                precipitation lags, cyclical encoding, key features and the
+                full correlation heatmap.
+              </p>
+              <span class="link-arrow">Open eda_plots.html →</span>
             </a>
           </div>
         </div>

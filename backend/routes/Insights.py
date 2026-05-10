@@ -1,6 +1,13 @@
 """
-GET /api/insights/eda       — Real EDA statistics from processed CSV
-GET /api/insights/pair_plot — Seaborn pair plot as base64 PNG
+GET /api/insights/eda          — Real EDA statistics from processed CSV
+GET /api/insights/pair_plot    — Original pair plot (kept for compatibility)
+GET /api/insights/plot/lag     — Pair plot: Cases & Lag Features
+GET /api/insights/plot/weather — Pair plot: Cases & Weather Features
+GET /api/insights/plot/precip  — Pair plot: Cases & Precipitation Features
+GET /api/insights/plot/cyclic  — Pair plot: Cases & Cyclical Features
+GET /api/insights/plot/key     — Pair plot: Key Features (hue by case level)
+GET /api/insights/plot/heatmap — Full Feature Correlation Heatmap
+GET /api/insights/plots_meta   — Metadata list of all available plot endpoints
 """
 
 import io
@@ -36,6 +43,27 @@ def _load_df() -> pd.DataFrame:
         "Processed data CSV not found. "
         f"Tried: {[str(c) for c in candidates]}"
     )
+
+
+# ── Shared helper: render a seaborn figure → base64 PNG ──────────────────────
+def _fig_to_b64(fig, dpi=110) -> dict:
+    import matplotlib.pyplot as plt
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight", facecolor="white")
+    plt.close("all")
+    buf.seek(0)
+    return {"image_base64": base64.b64encode(buf.read()).decode("utf-8"), "mime": "image/png"}
+
+
+def _ensure_mpl():
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        return plt, sns
+    except ImportError:
+        raise HTTPException(status_code=503, detail="matplotlib/seaborn not installed")
 
 
 # ── EDA endpoint ──────────────────────────────────────────────────────────────
@@ -127,63 +155,199 @@ def get_eda_data():
     }
 
 
-# ── Pair plot endpoint ────────────────────────────────────────────────────────
+# ── Original pair plot endpoint (kept for back-compat) ────────────────────────
 @router.get("/insights/pair_plot")
 def get_pair_plot():
-    """
-    Generates a seaborn pair plot of the key features vs dengue cases,
-    returns it as a base64-encoded PNG string.
-    """
-    try:
-        import matplotlib
-        matplotlib.use("Agg")   # non-interactive backend — must be set before pyplot
-        import matplotlib.pyplot as plt
-        import seaborn as sns
-    except ImportError:
-        raise HTTPException(status_code=503, detail="matplotlib/seaborn not installed")
+    return get_plot_key()
 
+
+# ── Plots metadata ────────────────────────────────────────────────────────────
+@router.get("/insights/plots_meta")
+def get_plots_meta():
+    return [
+        {
+            "id": "lag",
+            "title": "Cases & Lag Features",
+            "subtitle": "Core temporal autocorrelation — how this week's cases predict next week's outbreak through T-1 and T-2 lag windows.",
+            "icon": "⏱️",
+            "endpoint": "/api/insights/plot/lag",
+        },
+        {
+            "id": "weather",
+            "title": "Cases & Weather Features",
+            "subtitle": "Environmental drivers — temperature, relative humidity, precipitation and wind speed plotted pairwise against case counts.",
+            "icon": "🌡️",
+            "endpoint": "/api/insights/plot/weather",
+        },
+        {
+            "id": "precip",
+            "title": "Cases & Precipitation Features",
+            "subtitle": "Water-related features including current precipitation, 1-week lag, 2-week lag and water proxy index.",
+            "icon": "🌧️",
+            "endpoint": "/api/insights/plot/precip",
+        },
+        {
+            "id": "cyclic",
+            "title": "Cases & Cyclical Features",
+            "subtitle": "Sine/cosine encoded month and week features that capture annual and intra-annual seasonality patterns.",
+            "icon": "📅",
+            "endpoint": "/api/insights/plot/cyclic",
+        },
+        {
+            "id": "key",
+            "title": "Key Features — Coloured by Case Level",
+            "subtitle": "Compact all-in-one scatter matrix of the five most predictive features, coloured by Low / Medium / High case severity.",
+            "icon": "🔑",
+            "endpoint": "/api/insights/plot/key",
+        },
+        {
+            "id": "heatmap",
+            "title": "Feature Correlation Matrix",
+            "subtitle": "Full lower-triangle Pearson correlation heatmap across all numeric features — reveals multicollinearity and redundant predictors.",
+            "icon": "🗺️",
+            "endpoint": "/api/insights/plot/heatmap",
+        },
+    ]
+
+
+# ── PLOT 1: Cases & Lag Features ─────────────────────────────────────────────
+@router.get("/insights/plot/lag")
+def get_plot_lag():
+    plt, sns = _ensure_mpl()
     try:
         df = _load_df()
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
-    # Select features for the pair plot (keep it readable)
-    pair_cols = ["T2M_mean", "RH2M_mean", "PRECTOTCORR_sum", "t1_cases", "cases"]
-    pair_cols = [c for c in pair_cols if c in df.columns]
-
-    sub = df[pair_cols].dropna().sample(min(600, len(df)), random_state=42)
-
-    # Bin cases into severity for hue coloring
-    bins   = [-1, 2, 5, 9, sub["cases"].max() + 1]
-    labels = ["Low", "Medium", "High", "Severe"]
-    sub    = sub.copy()
-    sub["Severity"] = pd.cut(sub["cases"], bins=bins, labels=labels)
-
-    palette = {
-        "Low":    "#10b981",
-        "Medium": "#f59e0b",
-        "High":   "#ea580c",
-        "Severe": "#dc2626",
-    }
+    cols = [c for c in ["cases", "t1_cases", "t2_cases", "T2M_mean", "T2M_lag1"] if c in df.columns]
+    sub  = df[cols].dropna().sample(min(600, len(df)), random_state=42)
 
     sns.set_style("whitegrid")
-    sns.set_context("notebook", font_scale=0.9)
+    sns.set_context("notebook", font_scale=0.85)
+    g = sns.pairplot(sub, diag_kind="kde",
+                     plot_kws={"alpha": 0.45, "s": 18, "color": "#0284C7"},
+                     diag_kws={"fill": True, "color": "#F87171"})
+    g.fig.suptitle("Pair Plot: Cases & Lag Features", y=1.02, fontsize=13, fontweight="bold")
+    return _fig_to_b64(g.fig)
 
-    g = sns.pairplot(
-        sub,
-        vars     = pair_cols[:-1] + ["cases"],  # keep "cases" as the last variable
-        hue      = "Severity",
-        palette  = palette,
-        plot_kws = {"alpha": 0.4, "s": 15},
-        diag_kind= "kde",
-        corner   = False,
+
+# ── PLOT 2: Cases & Weather Features ─────────────────────────────────────────
+@router.get("/insights/plot/weather")
+def get_plot_weather():
+    plt, sns = _ensure_mpl()
+    try:
+        df = _load_df()
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    cols = [c for c in ["cases", "T2M_mean", "RH2M_mean", "PRECTOTCORR_sum", "WS10M_mean"] if c in df.columns]
+    sub  = df[cols].dropna().sample(min(600, len(df)), random_state=42)
+
+    sns.set_style("whitegrid")
+    sns.set_context("notebook", font_scale=0.85)
+    g = sns.pairplot(sub, diag_kind="kde",
+                     plot_kws={"alpha": 0.45, "s": 18, "color": "#0D9488"},
+                     diag_kws={"fill": True, "color": "#FCD34D"})
+    g.fig.suptitle("Pair Plot: Cases & Weather Features", y=1.02, fontsize=13, fontweight="bold")
+    return _fig_to_b64(g.fig)
+
+
+# ── PLOT 3: Cases & Precipitation Features ───────────────────────────────────
+@router.get("/insights/plot/precip")
+def get_plot_precip():
+    plt, sns = _ensure_mpl()
+    try:
+        df = _load_df()
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    cols = [c for c in ["cases", "PRECTOTCORR_sum", "PRECTOTCORR_lag1", "PRECTOTCORR_lag2", "water_proxy"] if c in df.columns]
+    sub  = df[cols].dropna().sample(min(600, len(df)), random_state=42)
+
+    sns.set_style("whitegrid")
+    sns.set_context("notebook", font_scale=0.85)
+    g = sns.pairplot(sub, diag_kind="kde",
+                     plot_kws={"alpha": 0.45, "s": 18, "color": "#1E40AF"},
+                     diag_kws={"fill": True, "color": "#93C5FD"})
+    g.fig.suptitle("Pair Plot: Cases & Precipitation Features", y=1.02, fontsize=13, fontweight="bold")
+    return _fig_to_b64(g.fig)
+
+
+# ── PLOT 4: Cases & Cyclical Features ────────────────────────────────────────
+@router.get("/insights/plot/cyclic")
+def get_plot_cyclic():
+    plt, sns = _ensure_mpl()
+    try:
+        df = _load_df()
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    cols = [c for c in ["cases", "month_sin", "month_cos", "week_sin", "week_cos"] if c in df.columns]
+    sub  = df[cols].dropna().sample(min(600, len(df)), random_state=42)
+
+    sns.set_style("whitegrid")
+    sns.set_context("notebook", font_scale=0.85)
+    g = sns.pairplot(sub, diag_kind="kde",
+                     plot_kws={"alpha": 0.45, "s": 18, "color": "#7C3AED"},
+                     diag_kws={"fill": True, "color": "#DDD6FE"})
+    g.fig.suptitle("Pair Plot: Cases & Cyclical Features", y=1.02, fontsize=13, fontweight="bold")
+    return _fig_to_b64(g.fig)
+
+
+# ── PLOT 5: Key Features coloured by case level ───────────────────────────────
+@router.get("/insights/plot/key")
+def get_plot_key():
+    plt, sns = _ensure_mpl()
+    try:
+        df = _load_df()
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    key_cols = [c for c in ["cases", "T2M_mean", "RH2M_mean", "PRECTOTCORR_sum", "t1_cases"] if c in df.columns]
+    sub = df[key_cols].dropna().sample(min(600, len(df)), random_state=42).copy()
+
+    bins   = [-1, 10, 50, max(51, sub["cases"].max() + 1)]
+    labels = ["Low", "Medium", "High"]
+    sub["Case Level"] = pd.cut(sub["cases"], bins=bins, labels=labels)
+
+    palette = {"Low": "#10B981", "Medium": "#F59E0B", "High": "#EF4444"}
+
+    sns.set_style("whitegrid")
+    sns.set_context("notebook", font_scale=0.85)
+    g = sns.pairplot(sub, vars=key_cols, hue="Case Level", palette=palette,
+                     diag_kind="kde",
+                     plot_kws={"alpha": 0.5, "s": 22},
+                     diag_kws={"fill": True, "alpha": 0.45})
+    g.fig.suptitle("Pair Plot: Key Features (Coloured by Case Level)", y=1.02, fontsize=13, fontweight="bold")
+    return _fig_to_b64(g.fig)
+
+
+# ── PLOT 6: Full Correlation Heatmap ─────────────────────────────────────────
+@router.get("/insights/plot/heatmap")
+def get_plot_heatmap():
+    plt, sns = _ensure_mpl()
+    try:
+        df = _load_df()
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    numeric_cols = df.select_dtypes(include=np.number).columns
+    corr_matrix  = df[numeric_cols].corr()
+    mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
+
+    n = len(numeric_cols)
+    fig_size = max(14, n * 0.7)
+    fig, ax = plt.subplots(figsize=(fig_size, fig_size * 0.85))
+
+    sns.set_style("white")
+    sns.heatmap(
+        corr_matrix, mask=mask, annot=(n <= 20), fmt=".2f",
+        cmap="RdBu_r", center=0, square=True,
+        linewidths=0.4, cbar_kws={"shrink": 0.75},
+        ax=ax, annot_kws={"size": 7},
     )
-    g.fig.suptitle("Pair Plot — Climate Features vs Dengue Cases", y=1.01, fontsize=12)
+    ax.set_title("Feature Correlation Matrix", fontsize=15, fontweight="bold", pad=18)
+    fig.tight_layout()
+    return _fig_to_b64(fig, dpi=100)
 
-    buf = io.BytesIO()
-    g.fig.savefig(buf, format="png", dpi=120, bbox_inches="tight", facecolor="white")
-    plt.close("all")
-    buf.seek(0)
-    img_b64 = base64.b64encode(buf.read()).decode("utf-8")
-
-    return {"image_base64": img_b64, "mime": "image/png"}
+
