@@ -228,6 +228,8 @@ function renderShapWaterfall(shapValues) {
   if (!container) return;
   container.innerHTML = "";
   container.id = "shap-live-chart";
+  container.style.lineHeight = "normal";
+  container.style.display = "block";
 
   const top = shapValues.slice(0, 8);
   const feats = top.map((s) => s.feature);
@@ -249,20 +251,25 @@ function renderShapWaterfall(shapValues) {
           line: { color: "white", width: 0.5 },
         },
         text,
-        textposition: "outside",
+        textposition: "auto",
         hovertemplate: "<b>%{y}</b><br>SHAP: %{x:.3f}<extra></extra>",
       },
     ],
     {
       ...baseLayout,
-      margin: { t: 10, r: 55, b: 40, l: 155 },
+      margin: { t: 10, r: 80, b: 40, l: 130 },
       xaxis: {
         ...baseLayout.xaxis,
         title: "SHAP contribution (cases)",
         zeroline: true,
         zerolinecolor: "#CBD5E1",
+        automargin: true,
       },
-      yaxis: { ...baseLayout.yaxis, autorange: "reversed" },
+      yaxis: { 
+        ...baseLayout.yaxis, 
+        autorange: "reversed",
+        automargin: true 
+      },
       height: 260,
     },
     plotConfig,
