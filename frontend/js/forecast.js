@@ -1,8 +1,12 @@
 /* ═══════════════════════════════════════════
    Dengue Predictor — Forecast / Home Page Logic
+   Fixed: implicit `event` global, resultArea initial state,
+          base-tag anchor links, full /api/predict + /api/insights/eda wiring.
 ═══════════════════════════════════════════ */
 
 // ── CONFIG ───────────────────────────────────────────────
+const API_BASE = "http://localhost:8000"; // change to your deployed URL
+
 const TEAL = "#0D9488",
   BLUE = "#0284C7",
   SLATE = "#64748B",
@@ -109,20 +113,21 @@ const countObs = new IntersectionObserver(
 document.querySelectorAll("[data-count]").forEach((el) => countObs.observe(el));
 
 // ── TABS ─────────────────────────────────────────────────
-window.switchTab = function (id) {
+// FIX: receive event as explicit parameter instead of implicit global
+window.switchTab = function (id, event) {
   document
     .querySelectorAll(".ins-tab")
     .forEach((t) => t.classList.remove("active"));
   document
     .querySelectorAll(".tab-panel")
     .forEach((p) => p.classList.remove("active"));
-  event.target.classList.add("active");
+  event.currentTarget.classList.add("active");
   document.getElementById("tab-" + id).classList.add("active");
   if (id === "model") renderModelCharts();
   if (id === "eda") renderEdaCharts();
 };
 
-// ── PREDICTION SIM ───────────────────────────────────────
+// ── HELPER: counter animation ─────────────────────────────
 function animateCounter(el, target, dur = 1200) {
   const s = performance.now();
   function upd(now) {
@@ -134,44 +139,384 @@ function animateCounter(el, target, dur = 1200) {
   requestAnimationFrame(upd);
 }
 
-window.simulatePrediction = function () {
-  const ra = document.getElementById("resultArea"),
-    es = document.getElementById("emptyState"),
-    cnt = document.getElementById("caseCount");
+const SEV_CLASS = {
+  Low: "sev-low",
+  Medium: "sev-medium",
+  High: "sev-high",
+  Severe: "sev-critical",
+};
+const DOT =
+  '<span style="width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block"></span>';
+
+// ═══════════════════════════════════════════════════════════
+// LIVE PREDICTION  (/api/predict)
+// ═══════════════════════════════════════════════════════════
+
+function getFormValues() {
+  const inputs = document.querySelectorAll(".form-input");
+  const district = inputs[0].value;
+  const temp = parseFloat(inputs[1].value) || 0;
+  const humidity = parseFloat(inputs[2].value) || 0;
+  const rainfall = parseFloat(inputs[3].value) || 0;
+  const wind = parseFloat(inputs[4].value) || 0;
+  const t1_cases = parseFloat(inputs[5].value) || 0;
+  const t2_cases = parseFloat(inputs[6].value) || 0;
+
+  // Current ISO epi-week
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const epiWeek = Math.ceil(
+    ((now - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7,
+  );
+
+  return {
+    district,
+    epi_week: Math.min(52, Math.max(1, epiWeek)),
+    T2M_mean: temp,
+    RH2M_mean: humidity,
+    PRECTOTCORR_sum: rainfall,
+    WS10M_mean: wind,
+    t1_cases,
+    t2_cases,
+  };
+}
+
+function showPredictionLoading() {
+  const btn = document.querySelector(".btn-predict");
+  btn.disabled = true;
+  btn.textContent = "⏳ Predicting...";
+}
+
+function resetPredictButton() {
+  const btn = document.querySelector(".btn-predict");
+  btn.disabled = false;
+  btn.textContent = "🔮 Predict Outbreak";
+}
+
+function renderPredictionResult(data) {
+  const ra = document.getElementById("resultArea");
+  const es = document.getElementById("emptyState");
+  const cnt = document.getElementById("caseCount");
+  const badge = document.getElementById("severityBadge");
+  const metaEl = document.querySelector(".meta-row");
+
   es.style.display = "none";
   ra.style.display = "block";
   ra.classList.add("visible");
   cnt.textContent = "0";
-  setTimeout(() => animateCounter(cnt, 247), 100);
+  setTimeout(() => animateCounter(cnt, data.predicted_cases_int), 100);
+
+  const sevClass = SEV_CLASS[data.severity] || "sev-high";
+  badge.className = "severity-badge " + sevClass;
+  badge.innerHTML = DOT + " " + data.severity.toUpperCase() + " RISK";
+
+  if (metaEl) {
+    metaEl.innerHTML =
+      `District: <strong>${data.district}</strong> &nbsp;|&nbsp; ` +
+      `Week: <strong>${data.epi_week}</strong> &nbsp;|&nbsp; ` +
+      `Model: <strong>${data.model_used}</strong> &nbsp;|&nbsp; ` +
+      `CI: <strong>${data.confidence_low}–${data.confidence_high}</strong>`;
+  }
+
+  if (data.shap_values && data.shap_values.length > 0) {
+    renderShapWaterfall(data.shap_values);
+  }
+}
+
+function renderShapWaterfall(shapValues) {
+  const container = document.querySelector(".shap-placeholder");
+  if (!container) return;
+  container.innerHTML = "";
+  container.id = "shap-live-chart";
+
+  const top = shapValues.slice(0, 8);
+  const feats = top.map((s) => s.feature);
+  const vals = top.map((s) => parseFloat(s.shap_value.toFixed(3)));
+  const colors = vals.map((v) => (v >= 0 ? TEAL : ROSE));
+  const text = vals.map((v) => (v >= 0 ? "+" : "") + v.toFixed(2));
+
+  Plotly.newPlot(
+    "shap-live-chart",
+    [
+      {
+        x: vals,
+        y: feats,
+        type: "bar",
+        orientation: "h",
+        marker: {
+          color: colors,
+          opacity: 0.85,
+          line: { color: "white", width: 0.5 },
+        },
+        text,
+        textposition: "outside",
+        hovertemplate: "<b>%{y}</b><br>SHAP: %{x:.3f}<extra></extra>",
+      },
+    ],
+    {
+      ...baseLayout,
+      margin: { t: 10, r: 55, b: 40, l: 155 },
+      xaxis: {
+        ...baseLayout.xaxis,
+        title: "SHAP contribution (cases)",
+        zeroline: true,
+        zerolinecolor: "#CBD5E1",
+      },
+      yaxis: { ...baseLayout.yaxis, autorange: "reversed" },
+      height: 260,
+    },
+    plotConfig,
+  );
+}
+
+function showPredictionError(msg) {
+  const ra = document.getElementById("resultArea");
+  const es = document.getElementById("emptyState");
+  es.style.display = "none";
+  ra.style.display = "block";
+  ra.innerHTML = `
+    <div style="text-align:center;padding:40px 20px;color:var(--text-muted)">
+      <div style="font-size:2.5rem;margin-bottom:12px">⚠️</div>
+      <div style="font-size:1rem;font-weight:600;color:#ef4444;margin-bottom:8px">Prediction failed</div>
+      <div style="font-size:0.85rem">${msg}</div>
+      <div style="font-size:0.8rem;margin-top:12px;color:var(--text-muted)">
+        Make sure the backend is running at <code>${API_BASE}</code>
+      </div>
+    </div>`;
+}
+
+// Main predict — called by button
+window.simulatePrediction = async function () {
+  showPredictionLoading();
+  const payload = getFormValues();
+
+  try {
+    const res = await fetch(`${API_BASE}/api/predict`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    renderPredictionResult(data);
+  } catch (err) {
+    showPredictionError(err.message);
+  } finally {
+    resetPredictButton();
+  }
 };
 
 window.toggleSeverity = function () {
   const b = document.getElementById("severityBadge");
-  const dot =
-    '<span style="width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block"></span>';
   if (b.classList.contains("sev-high")) {
     b.classList.replace("sev-high", "sev-critical");
-    b.innerHTML = dot + " CRITICAL RISK";
+    b.innerHTML = DOT + " CRITICAL RISK";
   } else {
     b.classList.replace("sev-critical", "sev-high");
-    b.innerHTML = dot + " HIGH RISK";
+    b.innerHTML = DOT + " HIGH RISK";
   }
 };
 
-// ═══════════════════════════════════════════════════════
-// PLOTLY CHARTS
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// PLOTLY CHARTS — EDA data fetched from /api/insights/eda
+// Falls back to demo data if backend unavailable
+// ═══════════════════════════════════════════════════════════
 let chartsRendered = false;
+
 function renderAllCharts() {
   if (chartsRendered) return;
   chartsRendered = true;
   renderEdaCharts();
 }
 
-// ── EDA Charts ───────────────────────────────────────────
-function renderEdaCharts() {
+async function renderEdaCharts() {
   if (document.getElementById("chart-temp").children.length > 0) return;
 
+  let edaData = null;
+  try {
+    const res = await fetch(`${API_BASE}/api/insights/eda`);
+    if (res.ok) edaData = await res.json();
+  } catch (_) {}
+
+  edaData ? renderEdaFromApi(edaData) : renderEdaDemo();
+}
+
+function renderEdaFromApi(d) {
+  const sizes = d.temp_vs_cases.cases.map((v) =>
+    Math.max(5, Math.sqrt(v) * 1.8),
+  );
+  Plotly.newPlot(
+    "chart-temp",
+    [
+      {
+        x: d.temp_vs_cases.T2M_mean,
+        y: d.temp_vs_cases.cases,
+        mode: "markers",
+        type: "scatter",
+        marker: {
+          color: d.temp_vs_cases.T2M_mean,
+          colorscale: [
+            [0, "#CCFBF1"],
+            [0.5, TEAL],
+            [1, "#0F766E"],
+          ],
+          size: sizes,
+          opacity: 0.75,
+          line: { color: "white", width: 0.5 },
+        },
+        hovertemplate:
+          "<b>Temp:</b> %{x}°C<br><b>Cases:</b> %{y}<extra></extra>",
+      },
+    ],
+    {
+      ...baseLayout,
+      xaxis: { ...baseLayout.xaxis, title: "Average Temperature (°C)" },
+      yaxis: { ...baseLayout.yaxis, title: "Weekly Cases" },
+    },
+    plotConfig,
+  );
+
+  const hSizes = d.hum_vs_cases.cases.map((v) =>
+    Math.max(5, Math.sqrt(v) * 1.8),
+  );
+  Plotly.newPlot(
+    "chart-humidity",
+    [
+      {
+        x: d.hum_vs_cases.RH2M_mean,
+        y: d.hum_vs_cases.cases,
+        mode: "markers",
+        type: "scatter",
+        marker: {
+          color: d.hum_vs_cases.RH2M_mean,
+          colorscale: [
+            [0, "#E0F2FE"],
+            [0.5, BLUE],
+            [1, "#075985"],
+          ],
+          size: hSizes,
+          opacity: 0.75,
+          line: { color: "white", width: 0.5 },
+        },
+        hovertemplate: "<b>RH:</b> %{x}%<br><b>Cases:</b> %{y}<extra></extra>",
+      },
+    ],
+    {
+      ...baseLayout,
+      xaxis: { ...baseLayout.xaxis, title: "Relative Humidity (%)" },
+      yaxis: { ...baseLayout.yaxis, title: "Weekly Cases" },
+    },
+    plotConfig,
+  );
+
+  Plotly.newPlot(
+    "chart-precip",
+    [
+      {
+        x: d.precip_dist,
+        type: "histogram",
+        nbinsx: 30,
+        marker: {
+          color: BLUE,
+          opacity: 0.75,
+          line: { color: "white", width: 0.5 },
+        },
+      },
+    ],
+    {
+      ...baseLayout,
+      xaxis: { ...baseLayout.xaxis, title: "Weekly Precipitation (mm)" },
+      yaxis: { ...baseLayout.yaxis, title: "Frequency" },
+      bargap: 0.05,
+    },
+    plotConfig,
+  );
+
+  const maxCase = Math.max(...d.epi_week_chart.avg_cases, 10);
+  Plotly.newPlot(
+    "chart-epiweek",
+    [
+      {
+        x: d.epi_week_chart.weeks,
+        y: d.epi_week_chart.avg_cases,
+        type: "bar",
+        marker: {
+          color: d.epi_week_chart.weeks.map((w) =>
+            w >= 30 && w <= 46 ? TEAL : BLUE,
+          ),
+          opacity: 0.8,
+        },
+        hovertemplate: "<b>Week %{x}</b><br>Avg cases: %{y}<extra></extra>",
+      },
+    ],
+    {
+      ...baseLayout,
+      xaxis: { ...baseLayout.xaxis, title: "Epidemiological Week" },
+      yaxis: { ...baseLayout.yaxis, title: "Avg Weekly Cases" },
+      shapes: [
+        {
+          type: "rect",
+          x0: 30,
+          x1: 46,
+          y0: 0,
+          y1: maxCase * 1.1,
+          fillcolor: "rgba(13,148,136,.05)",
+          line: { width: 0 },
+        },
+      ],
+      annotations: [
+        {
+          x: 38,
+          y: maxCase * 1.05,
+          text: "Peak Season<br>Wks 30–46",
+          showarrow: false,
+          font: { color: TEAL, size: 10 },
+        },
+      ],
+    },
+    plotConfig,
+  );
+
+  Plotly.newPlot(
+    "chart-corr",
+    [
+      {
+        x: d.corr_chart.corr,
+        y: d.corr_chart.features,
+        type: "bar",
+        orientation: "h",
+        marker: {
+          color: d.corr_chart.corr.map((c) => (c > 0 ? TEAL : ROSE)),
+          opacity: 0.85,
+          line: { color: "white", width: 0.5 },
+        },
+        text: d.corr_chart.corr.map((c) => (c > 0 ? "+" : "") + c.toFixed(2)),
+        textposition: "outside",
+        hovertemplate: "<b>%{y}</b><br>r = %{x:.3f}<extra></extra>",
+      },
+    ],
+    {
+      ...baseLayout,
+      margin: { t: 10, r: 60, b: 40, l: 160 },
+      xaxis: {
+        ...baseLayout.xaxis,
+        title: "Pearson r with Cases",
+        range: [-0.25, 1.0],
+        zeroline: true,
+        zerolinecolor: "#E2E8F0",
+      },
+      yaxis: { ...baseLayout.yaxis, autorange: "reversed" },
+    },
+    plotConfig,
+  );
+}
+
+function renderEdaDemo() {
   const tempVals = [
     22, 24, 25, 26, 27, 28, 28, 29, 30, 30, 31, 31, 32, 32, 33, 33, 34, 34, 35,
     35, 36, 36, 37, 38, 39, 40, 20, 21, 23, 24, 25, 26, 28, 30, 31, 32, 33, 34,
@@ -183,7 +528,6 @@ function renderEdaCharts() {
     190, 270, 310, 230,
   ];
   const sizes = caseVals.map((v) => Math.max(5, Math.sqrt(v) * 1.8));
-
   Plotly.newPlot(
     "chart-temp",
     [
@@ -214,7 +558,6 @@ function renderEdaCharts() {
     },
     plotConfig,
   );
-
   const humVals = [
     35, 40, 45, 50, 52, 55, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82,
     84, 86, 88, 90, 92, 94, 95, 40, 50, 60, 65, 70, 75, 80, 82, 85, 88, 90, 92,
@@ -249,11 +592,16 @@ function renderEdaCharts() {
     },
     plotConfig,
   );
-
   const precipData = [];
   for (let i = 0; i < 300; i++) {
-    const v = Math.random() < 0.6 ? Math.random() * 8 : Math.random() * 80 + 8;
-    precipData.push(parseFloat(v.toFixed(1)));
+    precipData.push(
+      parseFloat(
+        (Math.random() < 0.6
+          ? Math.random() * 8
+          : Math.random() * 80 + 8
+        ).toFixed(1),
+      ),
+    );
   }
   Plotly.newPlot(
     "chart-precip",
@@ -267,7 +615,6 @@ function renderEdaCharts() {
           opacity: 0.75,
           line: { color: "white", width: 0.5 },
         },
-        name: "Frequency",
       },
     ],
     {
@@ -278,19 +625,15 @@ function renderEdaCharts() {
     },
     plotConfig,
   );
-
   const weeks = Array.from({ length: 52 }, (_, i) => i + 1);
-  const avgCases = weeks.map((w) => {
-    const peak = 38,
-      sigma = 10;
-    return Math.max(
+  const avgCases = weeks.map((w) =>
+    Math.max(
       0,
       Math.round(
-        280 * Math.exp(-0.5 * Math.pow((w - peak) / sigma, 2)) +
-          Math.random() * 8,
+        280 * Math.exp(-0.5 * Math.pow((w - 38) / 10, 2)) + Math.random() * 8,
       ),
-    );
-  });
+    ),
+  );
   Plotly.newPlot(
     "chart-epiweek",
     [
@@ -332,7 +675,6 @@ function renderEdaCharts() {
     },
     plotConfig,
   );
-
   const features = [
     "t1_cases",
     "t2_cases",
@@ -346,7 +688,6 @@ function renderEdaCharts() {
     "WS10M_mean",
   ];
   const corrs = [0.82, 0.71, 0.58, 0.52, 0.48, 0.45, 0.38, 0.35, 0.31, -0.12];
-  const colors = corrs.map((c) => (c > 0 ? TEAL : ROSE));
   Plotly.newPlot(
     "chart-corr",
     [
@@ -356,7 +697,7 @@ function renderEdaCharts() {
         type: "bar",
         orientation: "h",
         marker: {
-          color: colors,
+          color: corrs.map((c) => (c > 0 ? TEAL : ROSE)),
           opacity: 0.85,
           line: { color: "white", width: 0.5 },
         },
@@ -381,18 +722,15 @@ function renderEdaCharts() {
   );
 }
 
-// ── Model Charts ─────────────────────────────────────────
 function renderModelCharts() {
   if (document.getElementById("chart-learning").children.length > 0) return;
-
   const nSamples = [50, 100, 160, 220, 280, 340, 400, 460, 520, 580];
-  const lrTrain = [0.62, 0.63, 0.63, 0.62, 0.62, 0.62, 0.61, 0.61, 0.61, 0.61];
-  const lrVal = [0.38, 0.44, 0.48, 0.51, 0.53, 0.55, 0.57, 0.58, 0.59, 0.6];
-  const rfTrain = [0.98, 0.97, 0.96, 0.95, 0.94, 0.93, 0.92, 0.91, 0.91, 0.9];
-  const rfVal = [0.55, 0.62, 0.66, 0.69, 0.71, 0.73, 0.74, 0.75, 0.76, 0.77];
-  const xgTrain = [0.95, 0.93, 0.91, 0.89, 0.88, 0.87, 0.86, 0.86, 0.85, 0.85];
-  const xgVal = [0.52, 0.59, 0.63, 0.67, 0.69, 0.71, 0.72, 0.73, 0.74, 0.75];
-
+  const lrTrain = [0.62, 0.63, 0.63, 0.62, 0.62, 0.62, 0.61, 0.61, 0.61, 0.61],
+    lrVal = [0.38, 0.44, 0.48, 0.51, 0.53, 0.55, 0.57, 0.58, 0.59, 0.6];
+  const rfTrain = [0.98, 0.97, 0.96, 0.95, 0.94, 0.93, 0.92, 0.91, 0.91, 0.9],
+    rfVal = [0.55, 0.62, 0.66, 0.69, 0.71, 0.73, 0.74, 0.75, 0.76, 0.77];
+  const xgTrain = [0.95, 0.93, 0.91, 0.89, 0.88, 0.87, 0.86, 0.86, 0.85, 0.85],
+    xgVal = [0.52, 0.59, 0.63, 0.67, 0.69, 0.71, 0.72, 0.73, 0.74, 0.75];
   Plotly.newPlot(
     "chart-learning",
     [
@@ -446,7 +784,6 @@ function renderModelCharts() {
     },
     plotConfig,
   );
-
   const feats = [
     "t1_cases",
     "t2_cases",
@@ -486,7 +823,6 @@ function renderModelCharts() {
     },
     plotConfig,
   );
-
   const rounds = Array.from({ length: 200 }, (_, i) => i + 1);
   const trainRmse = rounds.map(
     (r) => 30 * Math.exp(-r / 60) + 8 + Math.random() * 0.5,
@@ -494,7 +830,6 @@ function renderModelCharts() {
   const valRmse = rounds.map(
     (r) => 30 * Math.exp(-r / 80) + 14 + Math.random() * 0.8,
   );
-  const bestIter = 142;
   Plotly.newPlot(
     "chart-xgb",
     [
@@ -504,7 +839,6 @@ function renderModelCharts() {
         mode: "lines",
         name: "Train RMSE",
         line: { color: TEAL, width: 2 },
-        hovertemplate: "Round %{x}<br>Train RMSE: %{y:.2f}<extra></extra>",
       },
       {
         x: rounds,
@@ -512,7 +846,6 @@ function renderModelCharts() {
         mode: "lines",
         name: "Val RMSE",
         line: { color: ROSE, width: 2 },
-        hovertemplate: "Round %{x}<br>Val RMSE: %{y:.2f}<extra></extra>",
       },
     ],
     {
@@ -522,8 +855,8 @@ function renderModelCharts() {
       shapes: [
         {
           type: "line",
-          x0: bestIter,
-          x1: bestIter,
+          x0: 142,
+          x1: 142,
           y0: 0,
           y1: 45,
           line: { color: "#10B981", dash: "dash", width: 1.5 },
@@ -531,9 +864,9 @@ function renderModelCharts() {
       ],
       annotations: [
         {
-          x: bestIter,
+          x: 142,
           y: 42,
-          text: `Best: round ${bestIter}`,
+          text: "Best: round 142",
           showarrow: false,
           font: { color: "#10B981", size: 11 },
         },

@@ -1,6 +1,10 @@
 /* ═══════════════════════════════════════════
-   Dengue Predictor — Model Comparison Page Logic
+   Dengue Predictor — Model Comparison Page
+   Fixed: implicit `event` global in switchMdTab,
+          metrics fetched from /api/models/metrics with demo fallback.
 ═══════════════════════════════════════════ */
+
+const API_BASE = "http://localhost:8000"; // keep in sync with forecast.js
 
 const TEAL = "#0D9488",
   BLUE = "#0284C7",
@@ -38,8 +42,8 @@ const observer = new IntersectionObserver(
 );
 document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
 
-// ── MODEL DATA ───────────────────────────────────────────
-const models = {
+// ── FALLBACK MODEL DATA (used when API unavailable) ───────
+const DEMO_MODELS = {
   rf: {
     name: "Random Forest",
     color: TEAL,
@@ -81,8 +85,45 @@ const models = {
     cvStd: 0.09,
   },
 };
+
+// Will be populated from API or demo
+let models = { ...DEMO_MODELS };
 let currentModel = "rf";
 
+// ── FETCH METRICS FROM API ───────────────────────────────
+async function loadMetrics() {
+  try {
+    const res = await fetch(`${API_BASE}/api/models/metrics`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const m = data.models;
+
+    // Map API shape → local shape (gracefully fill nulls with demo values)
+    const map = (key, demo) => ({
+      name: m[key]?.name ?? demo.name,
+      color: m[key]?.color ?? demo.color,
+      valR2: m[key]?.val_r2 ?? demo.valR2,
+      valRmse: m[key]?.val_rmse ?? demo.valRmse,
+      valMae: m[key]?.val_mae ?? demo.valMae,
+      testR2: m[key]?.test_r2 ?? demo.testR2,
+      cvMean: m[key]?.cv_mean ?? demo.cvMean,
+      cvStd: m[key]?.cv_std ?? demo.cvStd,
+    });
+
+    models = {
+      rf: map("rf", DEMO_MODELS.rf),
+      xgb: map("xgb", DEMO_MODELS.xgb),
+      lr: map("lr", DEMO_MODELS.lr),
+      rfob: map("rfob", DEMO_MODELS.rfob),
+    };
+  } catch (_) {
+    // backend unavailable — keep demo values
+  }
+
+  renderMetricCards(currentModel);
+}
+
+// ── MODEL SELECTOR ────────────────────────────────────────
 window.selectModel = function (id) {
   currentModel = id;
   document
@@ -95,42 +136,56 @@ window.selectModel = function (id) {
 function renderMetricCards(id) {
   const m = models[id];
   const best = id === "rf";
+
+  const fmtR2 = (v) =>
+    v == null ? "N/A" : typeof v === "number" ? v.toFixed(2) : v;
+  const fmtRmse = (v) =>
+    v == null ? "N/A" : typeof v === "number" ? v.toFixed(1) : v;
+  const deltaDom = (val, ref, invert = false) => {
+    if (val == null) return "";
+    const diff = (val - ref) * (invert ? -1 : 1);
+    return diff >= 0
+      ? `<span style="color:#10b981">↑ +${Math.abs(diff).toFixed(2)}</span>`
+      : `<span style="color:#ef4444">↓ ${diff.toFixed(2)}</span>`;
+  };
+
   document.getElementById("metric-cards").innerHTML = `
     <div class="metric-card teal">
       <div class="metric-card-label">Val R² (2019)</div>
-      <div class="metric-card-val">${m.valR2}</div>
-      <div class="metric-card-delta ${!best ? "worse" : ""}">${best ? "↑ Best model" : "↓ vs RF: " + (m.valR2 - 0.79).toFixed(2)}</div>
+      <div class="metric-card-val">${fmtR2(m.valR2)}</div>
+      <div class="metric-card-delta">${best ? "↑ Best model" : deltaDom(m.valR2, models.rf.valR2)}</div>
       <div class="metric-card-sub">Outbreak year — harder to predict</div>
     </div>
     <div class="metric-card blue">
       <div class="metric-card-label">Val RMSE</div>
-      <div class="metric-card-val">${m.valRmse}</div>
-      <div class="metric-card-delta ${!best ? "worse" : ""}">${best ? "↑ Lowest error" : "↑ vs RF: +" + (m.valRmse - 13.2).toFixed(1)}</div>
+      <div class="metric-card-val">${fmtRmse(m.valRmse)}</div>
+      <div class="metric-card-delta ${!best ? "worse" : ""}">${best ? "↑ Lowest error" : "vs RF RF: +" + (m.valRmse - models.rf.valRmse).toFixed(1)}</div>
       <div class="metric-card-sub">Cases/week average error</div>
     </div>
     <div class="metric-card slate">
       <div class="metric-card-label">Test R² (2020)</div>
-      <div class="metric-card-val">${m.testR2}</div>
+      <div class="metric-card-val">${fmtR2(m.testR2)}</div>
       <div class="metric-card-delta ${id === "rfob" ? "worse" : ""}">${id === "rfob" ? "↓ Degrades on normal year" : "Generalizes well"}</div>
       <div class="metric-card-sub">Normal year generalization</div>
     </div>
     <div class="metric-card amber">
       <div class="metric-card-label">CV R² Mean</div>
-      <div class="metric-card-val">${m.cvMean} <span style="font-size:1rem;color:var(--text-muted)">±${m.cvStd}</span></div>
+      <div class="metric-card-val">${fmtR2(m.cvMean)} <span style="font-size:1rem;color:var(--text-muted)">±${m.cvStd}</span></div>
       <div class="metric-card-delta">5-fold TimeSeriesSplit</div>
       <div class="metric-card-sub">Temporal cross-validation</div>
     </div>`;
 }
 
 // ── TAB SWITCHING ─────────────────────────────────────────
-window.switchMdTab = function (id) {
+// FIX: receive event as explicit parameter
+window.switchMdTab = function (id, event) {
   document
     .querySelectorAll(".md-tab")
     .forEach((t) => t.classList.remove("active"));
   document
     .querySelectorAll(".md-panel")
     .forEach((p) => p.classList.remove("active"));
-  event.target.classList.add("active");
+  event.currentTarget.classList.add("active");
   document.getElementById("md-" + id).classList.add("active");
   renderTab(id);
 };
@@ -144,13 +199,14 @@ function renderTab(id) {
   if (id === "shap") renderShap();
 }
 
-// ── RENDER ON LOAD ───────────────────────────────────────
+// ── INIT ─────────────────────────────────────────────────
 window.addEventListener("load", () => {
-  renderMetricCards("rf");
+  loadMetrics(); // async: fetches from API then re-renders cards
   renderLearningCurves();
   renderCvFolds();
 });
 
+// ── CHARTS ───────────────────────────────────────────────
 function renderLearningCurves() {
   const n = [50, 100, 160, 220, 280, 340, 400, 460, 520, 580];
   const lrT = [0.62, 0.63, 0.63, 0.62, 0.62, 0.62, 0.61, 0.61, 0.61, 0.61];
@@ -221,6 +277,7 @@ function renderLearningCurves() {
         x: ["Linear Regression", "Random Forest", "XGBoost", "RF Outbreak"],
         y: [0.61, 0.79, 0.76, 0.83],
         type: "bar",
+        name: "Val R²",
         marker: {
           color: [SLATE, TEAL, BLUE, AMBER],
           opacity: 0.85,
@@ -267,21 +324,19 @@ function renderLearningCurves() {
 
   const rounds = Array.from({ length: 200 }, (_, i) => i + 1);
   const noise = () => Math.random() * 0.6 - 0.3;
-  const trainR = rounds.map((r) => 29 * Math.exp(-r / 60) + 8 + noise());
-  const valR = rounds.map((r) => 28 * Math.exp(-r / 82) + 14.5 + noise());
   Plotly.newPlot(
     "xgb-curve",
     [
       {
         x: rounds,
-        y: trainR,
+        y: rounds.map((r) => 29 * Math.exp(-r / 60) + 8 + noise()),
         mode: "lines",
         name: "Train RMSE",
         line: { color: TEAL, width: 2 },
       },
       {
         x: rounds,
-        y: valR,
+        y: rounds.map((r) => 28 * Math.exp(-r / 82) + 14.5 + noise()),
         mode: "lines",
         name: "Val RMSE",
         line: { color: ROSE, width: 2 },
@@ -341,7 +396,7 @@ function renderImportance() {
     0.25, 0.17, 0.11, 0.09, 0.07, 0.06, 0.07, 0.05, 0.03, 0.02, 0.02, 0.02,
     0.01, 0.01, 0.02,
   ];
-  const colors = (_, i) => (i < 2 ? TEAL : i < 5 ? BLUE : SLATE);
+  const colors = (i) => (i < 2 ? TEAL : i < 5 ? BLUE : SLATE);
 
   Plotly.newPlot(
     "fi-rf",
@@ -352,7 +407,7 @@ function renderImportance() {
         type: "bar",
         orientation: "h",
         marker: {
-          color: feats.map((_, i) => colors(_, i)),
+          color: feats.map((_, i) => colors(i)),
           opacity: 0.85,
           line: { color: "white", width: 0.5 },
         },
@@ -369,7 +424,6 @@ function renderImportance() {
     },
     cfg,
   );
-
   Plotly.newPlot(
     "fi-xgb",
     [
@@ -379,7 +433,7 @@ function renderImportance() {
         type: "bar",
         orientation: "h",
         marker: {
-          color: feats.map((_, i) => colors(_, i)),
+          color: feats.map((_, i) => colors(i)),
           opacity: 0.85,
           line: { color: "white", width: 0.5 },
         },
@@ -396,15 +450,12 @@ function renderImportance() {
     },
     cfg,
   );
-
-  const grps = ["Temporal Lags", "Climate", "Engineered", "Seasonal"];
-  const grpVals = [0.48, 0.26, 0.18, 0.08];
   Plotly.newPlot(
     "fi-group",
     [
       {
-        labels: grps,
-        values: grpVals,
+        labels: ["Temporal Lags", "Climate", "Engineered", "Seasonal"],
+        values: [0.48, 0.26, 0.18, 0.08],
         type: "pie",
         hole: 0.5,
         marker: { colors: [TEAL, BLUE, AMBER, SLATE] },
@@ -426,17 +477,17 @@ function renderResiduals() {
   const actual = Array.from({ length: 100 }, () =>
     Math.round(Math.random() * 300),
   );
-  const noise2 = actual.map(
+  const predicted = actual.map(
     (a) => a + Math.round((Math.random() - 0.4) * a * 0.4),
   );
-  const residuals = actual.map((a, i) => noise2[i] - a);
+  const residuals = actual.map((a, i) => predicted[i] - a);
 
   Plotly.newPlot(
     "res-scatter",
     [
       {
         x: actual,
-        y: noise2,
+        y: predicted,
         mode: "markers",
         type: "scatter",
         marker: {
@@ -629,29 +680,26 @@ function renderShap() {
 
 function renderCvFolds() {
   const folds = ["Fold 1", "Fold 2", "Fold 3", "Fold 4", "Fold 5"];
-  const lrF = [0.67, 0.63, 0.61, 0.58, 0.54];
-  const rfF = [0.82, 0.79, 0.77, 0.72, 0.68];
-  const xgF = [0.79, 0.76, 0.74, 0.7, 0.66];
   Plotly.newPlot(
     "cv-folds",
     [
       {
         x: folds,
-        y: lrF,
+        y: [0.67, 0.63, 0.61, 0.58, 0.54],
         type: "bar",
         name: "Linear Regression",
         marker: { color: SLATE, opacity: 0.8 },
       },
       {
         x: folds,
-        y: rfF,
+        y: [0.82, 0.79, 0.77, 0.72, 0.68],
         type: "bar",
         name: "Random Forest",
         marker: { color: TEAL, opacity: 0.8 },
       },
       {
         x: folds,
-        y: xgF,
+        y: [0.79, 0.76, 0.74, 0.7, 0.66],
         type: "bar",
         name: "XGBoost",
         marker: { color: BLUE, opacity: 0.8 },

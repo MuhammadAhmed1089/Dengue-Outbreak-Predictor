@@ -12,7 +12,7 @@
     />
     <link rel="stylesheet" href="css/style.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
-    <base target="_blank" />
+
   </head>
   <body class="page-comparison">
     <nav class="navbar">
@@ -215,16 +215,16 @@
       <div class="metric-cards" id="metric-cards"></div>
 
       <div class="model-detail-nav reveal">
-        <button class="md-tab active" onclick="switchMdTab('curves')">
+        <button class="md-tab active" onclick="switchMdTab('curves', event)">
           Learning Curves
         </button>
-        <button class="md-tab" onclick="switchMdTab('importance')">
+        <button class="md-tab" onclick="switchMdTab('importance', event)">
           Feature Importance
         </button>
-        <button class="md-tab" onclick="switchMdTab('residuals')">
+        <button class="md-tab" onclick="switchMdTab('residuals', event)">
           Residuals
         </button>
-        <button class="md-tab" onclick="switchMdTab('shap')">
+        <button class="md-tab" onclick="switchMdTab('shap', event)">
           SHAP Analysis
         </button>
       </div>

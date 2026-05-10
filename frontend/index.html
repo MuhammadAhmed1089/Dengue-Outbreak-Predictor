@@ -11,7 +11,6 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css" />
-    <base target="_blank" />
   </head>
   <body class="page-home">
     <div id="loading-screen">
@@ -48,7 +47,7 @@
           ><span class="dot">.</span>
         </div>
       </div>
-      <div class="loader-version">v1.0 · FAST-NUCES Lahore · 2025</div>
+      <div class="loader-version">v1.0 · FAST-NUCES Lahore · 2026</div>
     </div>
 
     <div id="main-content" style="opacity: 0; transition: opacity 0.6s ease">
@@ -296,10 +295,10 @@
           </div>
 
           <div class="insights-tabs reveal">
-            <button class="ins-tab active" onclick="switchTab('eda')">
+            <button class="ins-tab active" onclick="switchTab('eda', event)">
               📊 EDA Charts
             </button>
-            <button class="ins-tab" onclick="switchTab('model')">
+            <button class="ins-tab" onclick="switchTab('model', event)">
               🤖 Model Performance
             </button>
           </div>
@@ -609,6 +608,44 @@
                   value="2.8"
                 />
               </div>
+              <div class="form-group">
+                <label class="form-label">Cases Last Week</label>
+                <input
+                  type="number"
+                  class="form-input"
+                  placeholder="e.g. 45"
+                  value="0"
+                  min="0"
+                />
+                <div
+                  style="
+                    font-size: 0.75rem;
+                    color: var(--text-secondary);
+                    margin-top: 4px;
+                  "
+                >
+                  Reported dengue cases in the previous week
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cases 2 Weeks Ago</label>
+                <input
+                  type="number"
+                  class="form-input"
+                  placeholder="e.g. 30"
+                  value="0"
+                  min="0"
+                />
+                <div
+                  style="
+                    font-size: 0.75rem;
+                    color: var(--text-secondary);
+                    margin-top: 4px;
+                  "
+                >
+                  Reported dengue cases two weeks ago
+                </div>
+              </div>
               <button class="btn-predict" onclick="simulatePrediction()">
                 🔮 Predict Outbreak
               </button>
@@ -616,7 +653,7 @@
 
             <div class="dash-card reveal reveal-delay-2">
               <div class="dash-card-title">Prediction Result</div>
-              <div id="resultArea" class="result-area">
+              <div id="resultArea" class="result-area" style="display: none">
                 <div class="case-number" id="caseCount">247</div>
                 <div class="case-sublabel">predicted cases next week</div>
                 <div class="severity-badge sev-high" id="severityBadge">
