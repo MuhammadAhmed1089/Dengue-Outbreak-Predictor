@@ -59,6 +59,52 @@ document.addEventListener("DOMContentLoaded", async () => {
     districts = DEMO_DISTRICTS;
   }
 
+  // ── Populate Risk Tier Summary table from KMeans summary ─────────────────
+  const tbody = document.getElementById("risk-tier-tbody");
+  if (tbody) {
+    // Build summary from live district data if no backend summary available
+    const KEY_DRIVERS = {
+      critical:
+        "High temp + humidity, dense population, prior outbreak history",
+      high: "Monsoon rainfall peaks, moderate urban density",
+      moderate: "Seasonal spikes, lower population density",
+      low: "Arid climate, sparse population, limited breeding sites",
+    };
+
+    // Group districts by tier from live data
+    const grouped = { critical: [], high: [], moderate: [], low: [] };
+    districts.forEach((d) => {
+      if (grouped[d.tier]) grouped[d.tier].push(d);
+    });
+
+    const tierOrder = ["critical", "high", "moderate", "low"];
+    tbody.innerHTML = tierOrder
+      .map((tier) => {
+        const color = TIER_COLORS[tier] || "#94a3b8";
+        const label = tier.charAt(0).toUpperCase() + tier.slice(1);
+        const distList = grouped[tier] || [];
+        const names = distList.map((d) => d.name).join(", ") || "—";
+        const avgCases = distList.length
+          ? Math.round(
+              distList.reduce((s, d) => s + (d.cases || 0), 0) /
+                distList.length,
+            )
+          : 0;
+
+        return `<tr>
+        <td>
+          <span class="model-badge">
+            <span class="model-dot" style="background:${color}"></span>${label}
+          </span>
+        </td>
+        <td>${names}</td>
+        <td><span class="mono">${avgCases}</span></td>
+        <td>${KEY_DRIVERS[tier] || "—"}</td>
+      </tr>`;
+      })
+      .join("");
+  }
+
   // Render markers
   districts.forEach((d) => {
     const color = TIER_COLORS[d.tier] || "#94a3b8";

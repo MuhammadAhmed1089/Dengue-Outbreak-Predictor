@@ -17,7 +17,6 @@
       crossorigin=""
     />
     <link rel="stylesheet" href="css/style.css" />
-
   </head>
   <body class="page-map">
     <nav class="navbar">
@@ -93,52 +92,14 @@
               <th>Key Drivers</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="risk-tier-tbody">
             <tr>
-              <td>
-                <span class="model-badge"
-                  ><span class="model-dot" style="background: #dc2626"></span
-                  >Critical</span
-                >
+              <td
+                colspan="4"
+                style="text-align: center; color: #94a3b8; padding: 18px"
+              >
+                Loading KMeans cluster data…
               </td>
-              <td>Lahore, Rawalpindi, Faisalabad</td>
-              <td><span class="mono">245</span></td>
-              <td>
-                High temp + humidity, dense population, prior outbreak history
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <span class="model-badge"
-                  ><span class="model-dot" style="background: #ea580c"></span
-                  >High</span
-                >
-              </td>
-              <td>Multan, Gujranwala, Sialkot, Sheikhupura</td>
-              <td><span class="mono">138</span></td>
-              <td>Monsoon rainfall peaks, moderate urban density</td>
-            </tr>
-            <tr>
-              <td>
-                <span class="model-badge"
-                  ><span class="model-dot" style="background: #f59e0b"></span
-                  >Moderate</span
-                >
-              </td>
-              <td>Bahawalpur, Sargodha, Jhang, Sahiwal</td>
-              <td><span class="mono">72</span></td>
-              <td>Seasonal spikes, lower population density</td>
-            </tr>
-            <tr>
-              <td>
-                <span class="model-badge"
-                  ><span class="model-dot" style="background: #10b981"></span
-                  >Low</span
-                >
-              </td>
-              <td>Dera Ghazi Khan, Muzaffargarh, Rajanpur</td>
-              <td><span class="mono">28</span></td>
-              <td>Arid climate, sparse population, limited breeding sites</td>
             </tr>
           </tbody>
         </table>

@@ -158,6 +158,7 @@ class PredictResponse(BaseModel):
     severity_color:      str
     model_used:          str
     is_outbreak:         bool
+    outbreak_prob:       float   # raw classifier probability — useful for debugging
     shap_values:         list[ShapEntry]
     confidence_low:      float
     confidence_high:     float
@@ -165,10 +166,10 @@ class PredictResponse(BaseModel):
 
 # ── HELPERS ──────────────────────────────────────────────────────────────────
 def _get_lag_climate(district_encoded: int, epi_week: int, df: pd.DataFrame):
-    """Look up last week's T2M and 1-2 week lag precip from processed data."""
+    """Look up last week's T2M, 1-2 week lag precip, and t3_cases from processed data."""
     sub = df[df["district_encoded"] == district_encoded].copy()
     if sub.empty:
-        return 0.0, 0.0, 0.0
+        return 0.0, 0.0, 0.0, 0.0
 
     target_week = epi_week - 1 if epi_week > 1 else 52
     row1 = sub[sub["epi_week"] == target_week]
@@ -184,7 +185,15 @@ def _get_lag_climate(district_encoded: int, epi_week: int, df: pd.DataFrame):
         row2 = row1
     PRECTOTCORR_lag2 = float(row2["PRECTOTCORR_sum"].values[0]) if "PRECTOTCORR_sum" in row2 else 0.0
 
-    return T2M_lag1, PRECTOTCORR_lag1, PRECTOTCORR_lag2
+    # t3_cases: cases 3 weeks ago — needed to compute prev_momentum = t2-t3
+    # so cases_acceleration = (t1-t2) - (t2-t3) matches applyFeatureEngineering()
+    target_week3 = epi_week - 3 if epi_week > 3 else 50
+    row3 = sub[sub["epi_week"] == target_week3]
+    if row3.empty:
+        row3 = row2
+    t3_cases = float(row3["cases"].values[0]) if "cases" in row3 else 0.0
+
+    return T2M_lag1, PRECTOTCORR_lag1, PRECTOTCORR_lag2, t3_cases
 
 
 def _build_regressor_row(req: PredictRequest, district_encoded: int,
@@ -204,7 +213,7 @@ def _build_regressor_row(req: PredictRequest, district_encoded: int,
         PRECTOTCORR_lag1 = req.PRECTOTCORR_lag1 or 0.0
         PRECTOTCORR_lag2 = req.PRECTOTCORR_lag2 or 0.0
     else:
-        T2M_lag1, PRECTOTCORR_lag1, PRECTOTCORR_lag2 = _get_lag_climate(
+        T2M_lag1, PRECTOTCORR_lag1, PRECTOTCORR_lag2, _ = _get_lag_climate(
             district_encoded, week, df
         )
 
@@ -250,9 +259,10 @@ def _build_classifier_row(req: PredictRequest, district_encoded: int,
     d_std  = float(district_rows.std())  if len(district_rows) > 1 else 1.0
     t1_cases_zscore = (req.t1_cases - d_mean) / (d_std + 1e-6)
 
-    # cases_acceleration — momentum change; best approximation at inference time
-    # is momentum - (t2_cases - t3_cases). Without t3, use t2 as previous momentum.
-    prev_momentum      = req.t2_cases - 0.0   # approximate: assume t3=0
+    # cases_acceleration = (t1-t2) - (t2-t3), matching applyFeatureEngineering()
+    # Look up t3_cases from processed data (same pattern as climate lags)
+    _, _, _, t3_cases = _get_lag_climate(district_encoded, week, df)
+    prev_momentum      = req.t2_cases - t3_cases
     cases_acceleration = momentum - prev_momentum
 
     row = {
@@ -328,9 +338,11 @@ def predict(req: PredictRequest):
     X = _build_regressor_row(req, district_encoded, df)
 
     # ── 3. Build classifier feature row & predict outbreak ───────────────────
+    # Use predict_proba with 0.7 threshold — matches notebook evaluation exactly
     X_clf            = _build_classifier_row(req, district_encoded, df)
     clf              = artifacts["outbreak_classifier"]
-    is_outbreak_pred = bool(clf.predict(X_clf)[0])
+    outbreak_prob    = float(clf.predict_proba(X_clf)[0][1])
+    is_outbreak_pred = outbreak_prob > 0.7
 
     # ── 4. Regression ─────────────────────────────────────────────────────────
     if is_outbreak_pred:
@@ -372,6 +384,7 @@ def predict(req: PredictRequest):
         severity_color      = SEVERITY_COLORS.get(severity, "#64748b"),
         model_used          = model_name,
         is_outbreak         = is_outbreak_pred,
+        outbreak_prob       = round(outbreak_prob, 4),
         shap_values         = shap_out,
         confidence_low      = confidence_low,
         confidence_high     = confidence_high,
