@@ -7,8 +7,8 @@ cluster_risk_map.pkl for the Leaflet.js map.
 from pathlib import Path
 from functools import lru_cache
 
-import joblib
 import numpy as np
+import pandas as pd
 from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
@@ -65,67 +65,94 @@ TIER_COLORS = {
 }
 
 
-@lru_cache(maxsize=1)
-def _load_cluster_artifacts():
-    def _try_load(name):
-        p = MODELS_DIR / name
-        return joblib.load(p) if p.exists() else None
+RISK_ZONE_TO_TIER = {
+    "Low Risk":      "low",
+    "Moderate Risk": "moderate",
+    "High Risk":     "high",
+    "Hotspot":       "critical",
+}
 
-    return {
-        "kmeans_zone":     _try_load("kmeans_zone.pkl"),
-        "cluster_risk_map":_try_load("cluster_risk_map.pkl"),
-        "kmeans_clusters": _try_load("kmeans_clusters.pkl"),
+import pandas as pd
+
+@lru_cache(maxsize=1)
+def _load_cluster_assignments():
+    csv_path = Path(__file__).resolve().parent.parent.parent / "data" / "processed" / "cluster_assignments.csv"
+    if not csv_path.exists():
+        return {}
+
+    df = pd.read_csv(csv_path)
+
+    # district_encoded is assigned alphabetically by OrdinalEncoder
+    # DISTRICT_COORDS keys sorted alphabetically matches that encoding
+    sorted_districts = sorted(DISTRICT_COORDS.keys())
+    enc_to_name = {float(i): name for i, name in enumerate(sorted_districts)}
+
+    df["district_name"] = df["district_encoded"].map(enc_to_name)
+    df = df.dropna(subset=["district_name", "risk_zone"])
+
+    result = {}
+    for district, grp in df.groupby("district_name"):
+        majority_zone = grp["risk_zone"].mode()[0]
+        peak          = grp[grp["epi_week"].between(30, 45)]
+        avg_cases     = float(peak["mean_predicted"].mean()) if len(peak) else float(grp["mean_predicted"].mean())
+        result[district] = {
+            "tier":      RISK_ZONE_TO_TIER.get(majority_zone, "low"),
+            "avg_cases": round(avg_cases, 1),
+        }
+    return result
+
+
+@router.get("/cluster/debug")
+def debug_cluster():
+    import sys as _sys
+    _sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+    from config import DATA_DIR
+
+    csv_path1 = DATA_DIR / "processed" / "cluster_assignments.csv"
+    csv_path2 = Path(__file__).resolve().parent.parent.parent / "data" / "processed" / "cluster_assignments.csv"
+
+    result = {
+        "DATA_DIR":    str(DATA_DIR),
+        "csv_path1":   str(csv_path1),
+        "csv_path1_exists": csv_path1.exists(),
+        "csv_path2":   str(csv_path2),
+        "csv_path2_exists": csv_path2.exists(),
+        "cluster_py_location": str(Path(__file__).resolve()),
     }
 
+    # If CSV found, show columns and first 3 rows
+    for p in [csv_path1, csv_path2]:
+        if p.exists():
+            df = pd.read_csv(p)
+            result["csv_columns"] = df.columns.tolist()
+            result["csv_rows"]    = len(df)
+            result["csv_head"]    = df.head(3).to_dict(orient="records")
+            break
 
-def _zone_to_tier(zone_id: int, n_clusters: int = 4) -> str:
-    """Map an integer cluster id to a named risk tier."""
-    # Assumes cluster_risk_map is a dict {zone_id: {"tier": ...}}
-    # If not, fall back to ordinal mapping.
-    tier_map = {0: "low", 1: "moderate", 2: "high", 3: "critical"}
-    return tier_map.get(int(zone_id) % 4, "low")
+    return result
 
 
 @router.get("/cluster")
 def get_cluster_data():
     """
-    Returns list of districts with lat/lng, risk tier, color, and
-    average predicted cases derived from the KMeans clustering model.
+    Returns all 36 Punjab districts with KMeans-assigned risk tier and
+    average predicted cases, sourced from cluster_assignments.csv.
     """
-    arts = _load_cluster_artifacts()
-    kmeans_zone      = arts["kmeans_zone"]
-    cluster_risk_map = arts["cluster_risk_map"]
+    assignments = _load_cluster_assignments()
 
     districts_out = []
-
     for district, (lat, lng) in DISTRICT_COORDS.items():
-        tier  = "low"
-        cases = 0
-
-        # ── Try to read tier from pkl artifacts ──────────────────────────────
-        if cluster_risk_map is not None:
-            # cluster_risk_map: {district_name: {tier, avg_cases, ...}} OR
-            #                   {cluster_id: {tier, avg_cases, ...}}
-            if isinstance(cluster_risk_map, dict):
-                entry = cluster_risk_map.get(district)
-                if entry and isinstance(entry, dict):
-                    tier  = entry.get("tier",      tier)
-                    cases = entry.get("avg_cases",  cases)
-
-        if kmeans_zone is not None and tier == "low":
-            # kmeans_zone: {district_name: cluster_id}
-            if isinstance(kmeans_zone, dict):
-                zone_id = kmeans_zone.get(district)
-                if zone_id is not None:
-                    tier = _zone_to_tier(zone_id)
+        entry     = assignments.get(district, {})
+        tier      = entry.get("tier",      "low")
+        avg_cases = entry.get("avg_cases", 0)
 
         districts_out.append({
-            "name":       district,
-            "lat":        lat,
-            "lng":        lng,
-            "tier":       tier,
-            "color":      TIER_COLORS.get(tier, "#10b981"),
-            "avg_cases":  cases,
+            "name":      district,
+            "lat":       lat,
+            "lng":       lng,
+            "tier":      tier,
+            "color":     TIER_COLORS.get(tier, "#10b981"),
+            "avg_cases": avg_cases,
         })
 
     # ── Risk tier summary ─────────────────────────────────────────────────────
@@ -133,10 +160,10 @@ def get_cluster_data():
     for tier_key, color in TIER_COLORS.items():
         matching = [d for d in districts_out if d["tier"] == tier_key]
         summary[tier_key] = {
-            "color":        color,
-            "districts":    [d["name"] for d in matching],
-            "count":        len(matching),
-            "avg_cases":    (
+            "color":     color,
+            "districts": [d["name"] for d in matching],
+            "count":     len(matching),
+            "avg_cases": (
                 int(np.mean([d["avg_cases"] for d in matching]))
                 if matching else 0
             ),
